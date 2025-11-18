@@ -106,7 +106,7 @@ Start with a one-sentence summary of the key takeaway. Then, briefly explain wha
     - *Technical Fix:* "A/B test the button copy on the sign-up page."
     - *Platform Upgrade:* "Consider integrating a faster payment processor to reduce cart abandonment."
     - *Content Tweak:* "Rewrite the email subject line to create more urgency."
-- **Broader Strategy:** Suggest one other strategic action the user could take based on the overall model to incrementally lift the success rate.
+    - *Broader Strategy:* Suggest one other strategic action the user could take based on the overall model to incrementally lift the success rate.
 - **Model Enhancement:** Propose one new, relevant variable the user could add to their model to gain a more complete picture. Explain why this variable is important for a more robust strategy.
   `;
   
@@ -171,16 +171,22 @@ const variableSchema = {
     required: ['name', 'states']
 };
 
-export const analyzeLinkForVariables = async (url: string): Promise<Variable> => {
+export const analyzeLinkForVariables = async (url: string): Promise<{ variable: Variable; sources: { title: string; uri: string }[] }> => {
+    // When using Google Search tool, we cannot use responseSchema.
+    // We must explicitly instruct the model to return JSON in the prompt.
     const prompt = `You are a strategic analyst. A user has provided a URL. Your task is to analyze the content and purpose of the website at this URL and propose a new, relevant variable for their probabilistic model.
 
 URL provided by user: ${url}
 
-Based on the likely content of this URL, identify a single, core strategic variable. For this variable, define 2-3 distinct states (or strategies). For each state, estimate the probability of achieving a 'Success' outcome. 'Success' in this context means achieving the primary goal of the entity behind the website (e.g., making a sale, getting sign-ups, increasing engagement).
+**INSTRUCTIONS:**
+1. Use **Google Search** to find information about the website at the provided URL. Understand its business model, products, or primary goal.
+2. Based on your research, identify a single, core strategic variable relevant to this entity.
+3. Define 2-3 distinct states (strategies/options) for this variable.
+4. For each state, estimate the probability (0-100) of achieving a 'Success' outcome based on general market knowledge for this type of business.
 
-**IMPORTANT:** Do not attempt to access the URL directly. Your analysis must be based solely on the URL's structure, domain, and common knowledge about websites of its type. This is a privacy-preserving analysis to protect user data.
-
-Return your response as a single, clean JSON object that adheres to the provided schema. Do not include any other text, markdown formatting, or explanations.
+**OUTPUT FORMAT:**
+You must return ONLY a valid JSON object. Do not include markdown formatting (like \`\`\`json) or any explanatory text. The JSON must strictly adhere to this structure:
+${JSON.stringify(variableSchema, null, 2)}
 `;
 
     try {
@@ -189,8 +195,9 @@ Return your response as a single, clean JSON object that adheres to the provided
             model,
             contents: prompt,
             config: {
-                responseMimeType: 'application/json',
-                responseSchema: variableSchema,
+                // Enable Google Search Grounding
+                tools: [{ googleSearch: {} }],
+                // Note: responseMimeType and responseSchema are NOT allowed when using tools/search.
             }
         });
         
@@ -201,7 +208,17 @@ Return your response as a single, clean JSON object that adheres to the provided
             throw new Error("No response received from AI service.");
         }
 
-        const parsed = JSON.parse(text);
+        // Robust JSON extraction in case the model includes markdown code blocks despite instructions
+        const jsonMatch = text.match(/\{[\s\S]*\}/);
+        const jsonString = jsonMatch ? jsonMatch[0] : text;
+        
+        let parsed;
+        try {
+            parsed = JSON.parse(jsonString);
+        } catch (e) {
+            console.error("Failed to parse JSON from model response:", text);
+            throw new Error("AI response was not in valid JSON format.");
+        }
 
         const textToCheck = `${parsed.name} ${parsed.states.map((s: any) => s.name).join(' ')}`;
         const isMalicious = await checkForMaliciousIntent(textToCheck);
@@ -223,13 +240,28 @@ Return your response as a single, clean JSON object that adheres to the provided
                 }))
             }))
         };
-        return variableWithIds;
+
+        // Extract Grounding Metadata (Sources)
+        const sources: { title: string; uri: string }[] = [];
+        const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
+        if (chunks) {
+            chunks.forEach(chunk => {
+                if (chunk.web) {
+                    sources.push({
+                        title: chunk.web.title || 'Source',
+                        uri: chunk.web.uri || '#'
+                    });
+                }
+            });
+        }
+
+        return { variable: variableWithIds, sources };
 
     } catch (error) {
         console.error("Error analyzing link:", error);
         if (error instanceof Error && error.message.startsWith('SECURITY_RISK_DETECTED')) {
             throw error;
         }
-        throw new Error("Failed to generate a variable from the link. The AI may not have been able to interpret the URL. Please try a different one.");
+        throw new Error("Failed to generate a variable from the link. Please ensure the URL is valid and accessible via search.");
     }
 };
