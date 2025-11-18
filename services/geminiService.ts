@@ -1,13 +1,21 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Variable, AnalysisResult, Outcome, VariableState } from '../types';
 
-// We use a partial declaration here to ensure TS is happy even if types/node isn't fully picked up in the editor context,
-// though the tsconfig update handles the build.
-if (!process.env.API_KEY) {
-  throw new Error("API_KEY environment variable is not set");
-}
+// Explicitly declare process for TypeScript since we are in a browser context
+// where Vite replaces process.env.API_KEY at build time.
+declare const process: {
+    env: {
+        API_KEY: string | undefined;
+    }
+};
 
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+const getAiClient = () => {
+    if (!process.env.API_KEY) {
+        throw new Error("API_KEY environment variable is not set. Please configure it in your deployment settings.");
+    }
+    return new GoogleGenAI({ apiKey: process.env.API_KEY });
+};
+
 const model = "gemini-2.5-flash";
 
 const checkForMaliciousIntent = async (text: string): Promise<boolean> => {
@@ -22,6 +30,7 @@ ${text}
 ---
 `;
     try {
+        const ai = getAiClient();
         const response = await ai.models.generateContent({
             model,
             contents: prompt,
@@ -102,6 +111,7 @@ Start with a one-sentence summary of the key takeaway. Then, briefly explain wha
   `;
   
   try {
+    const ai = getAiClient();
     const response = await ai.models.generateContent({
         model,
         contents: prompt
@@ -174,6 +184,7 @@ Return your response as a single, clean JSON object that adheres to the provided
 `;
 
     try {
+        const ai = getAiClient();
         const response = await ai.models.generateContent({
             model,
             contents: prompt,
