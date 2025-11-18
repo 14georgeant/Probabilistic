@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { analyzeLinkForVariables } from '../services/geminiService';
 import { Variable } from '../types';
@@ -5,15 +6,21 @@ import { Variable } from '../types';
 interface LinkAnalyzerProps {
     onVariableGenerated: (variable: Variable) => void;
     onSecurityRisk: () => void;
+    isOnline: boolean;
 }
 
-const LinkAnalyzer: React.FC<LinkAnalyzerProps> = ({ onVariableGenerated, onSecurityRisk }) => {
+const LinkAnalyzer: React.FC<LinkAnalyzerProps> = ({ onVariableGenerated, onSecurityRisk, isOnline }) => {
     const [url, setUrl] = useState<string>('');
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
     const [suggestedVariable, setSuggestedVariable] = useState<Variable | null>(null);
 
     const handleAnalyzeClick = async () => {
+        if (!isOnline) {
+            setError('You are offline. Please connect to the internet to use this feature.');
+            return;
+        }
+
         if (!url.trim()) {
             setError('Please enter a URL.');
             return;
@@ -63,14 +70,18 @@ const LinkAnalyzer: React.FC<LinkAnalyzerProps> = ({ onVariableGenerated, onSecu
                     type="url"
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
-                    placeholder="https://your-website.com/product"
-                    className="flex-grow bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white placeholder-gray-400 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition"
-                    disabled={isLoading}
+                    placeholder={isOnline ? "https://your-website.com/product" : "Offline - Feature Unavailable"}
+                    className={`flex-grow bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white placeholder-gray-400 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition ${!isOnline ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    disabled={isLoading || !isOnline}
                 />
                 <button
                     onClick={handleAnalyzeClick}
-                    disabled={isLoading}
-                    className="bg-cyan-600 hover:bg-cyan-500 disabled:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition-colors"
+                    disabled={isLoading || !isOnline}
+                    className={`text-white font-bold py-2 px-4 rounded-lg transition-colors ${
+                        isLoading || !isOnline 
+                        ? 'bg-gray-600 cursor-not-allowed' 
+                        : 'bg-cyan-600 hover:bg-cyan-500'
+                    }`}
                 >
                     {isLoading ? '...' : 'Generate'}
                 </button>

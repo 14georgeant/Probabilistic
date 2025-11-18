@@ -34,6 +34,7 @@ const App: React.FC = () => {
     const [error, setError] = useState<string>('');
     const [activeTab, setActiveTab] = useState<'manual' | 'ai'>('manual');
     const [isBlocked, setIsBlocked] = useState<boolean>(false);
+    const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
     
     // Terms and Privacy State
     const [hasAcceptedTerms, setHasAcceptedTerms] = useState<boolean>(false);
@@ -45,6 +46,17 @@ const App: React.FC = () => {
             setHasAcceptedTerms(true);
             setShowTermsModal(false);
         }
+
+        const handleOnline = () => setIsOnline(true);
+        const handleOffline = () => setIsOnline(false);
+
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+
+        return () => {
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
+        };
     }, []);
 
     const handleAcceptTerms = () => {
@@ -60,6 +72,11 @@ const App: React.FC = () => {
     };
 
     const handleAnalyze = useCallback(async () => {
+        if (!isOnline) {
+            setError('You are offline. Please connect to the internet to use AI features.');
+            return;
+        }
+
         setIsLoading(true);
         setError('');
         setAnalysisResult(null);
@@ -134,7 +151,7 @@ const App: React.FC = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [variables, targetOutcomeName]);
+    }, [variables, targetOutcomeName, isOnline]);
     
     const handleAddVariable = (newVariable: Variable) => {
         setVariables(prevVariables => [...prevVariables, newVariable]);
@@ -187,6 +204,11 @@ const App: React.FC = () => {
     return (
         <div className="min-h-screen bg-gray-900 text-gray-100 flex flex-col">
             <Header />
+            {!isOnline && (
+                <div className="bg-amber-600/90 text-white text-center px-4 py-2 text-sm font-medium shadow-md backdrop-blur-sm">
+                    You are currently offline. AI features are disabled, but you can still edit variables manually.
+                </div>
+            )}
             <main className="flex-grow container mx-auto p-4 md:p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="bg-gray-800 p-6 rounded-lg shadow-2xl flex flex-col">
                     <h2 className="text-2xl font-bold mb-4 text-cyan-400">1. Define Variables & Outcomes</h2>
@@ -211,7 +233,11 @@ const App: React.FC = () => {
                         {activeTab === 'manual' ? (
                             <VariableInputList variables={variables} setVariables={setVariables} />
                         ) : (
-                            <LinkAnalyzer onVariableGenerated={handleAddVariable} onSecurityRisk={handleSecurityRisk} />
+                            <LinkAnalyzer 
+                                onVariableGenerated={handleAddVariable} 
+                                onSecurityRisk={handleSecurityRisk} 
+                                isOnline={isOnline}
+                            />
                         )}
                     </div>
                 </div>
@@ -231,10 +257,14 @@ const App: React.FC = () => {
                 <div className="container mx-auto flex justify-center">
                     <button
                         onClick={handleAnalyze}
-                        disabled={isLoading}
-                        className="w-full md:w-1/2 lg:w-1/3 bg-cyan-600 hover:bg-cyan-500 disabled:bg-gray-600 text-white font-bold py-3 px-6 rounded-lg text-lg shadow-lg transform hover:scale-105 transition-all duration-300 ease-in-out disabled:cursor-not-allowed"
+                        disabled={isLoading || !isOnline}
+                        className={`w-full md:w-1/2 lg:w-1/3 font-bold py-3 px-6 rounded-lg text-lg shadow-lg transform transition-all duration-300 ease-in-out ${
+                            isLoading || !isOnline
+                            ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                            : 'bg-cyan-600 hover:bg-cyan-500 text-white hover:scale-105'
+                        }`}
                     >
-                        {isLoading ? 'Analyzing...' : 'Find Highest Probability Outcome'}
+                        {isLoading ? 'Analyzing...' : !isOnline ? 'Offline - Connect to Internet for AI' : 'Find Highest Probability Outcome'}
                     </button>
                 </div>
             </footer>
