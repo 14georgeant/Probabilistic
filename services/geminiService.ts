@@ -1,6 +1,8 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Variable, AnalysisResult, Outcome, VariableState } from '../types';
 
+// We use a partial declaration here to ensure TS is happy even if types/node isn't fully picked up in the editor context,
+// though the tsconfig update handles the build.
 if (!process.env.API_KEY) {
   throw new Error("API_KEY environment variable is not set");
 }
@@ -28,7 +30,9 @@ ${text}
             }
         });
         
-        const responseText = response.text;
+        // Safely access text, defaulting to empty string if undefined
+        const responseText = response.text ?? '';
+        
         if (!responseText) {
             return false;
         }
@@ -103,7 +107,9 @@ Start with a one-sentence summary of the key takeaway. Then, briefly explain wha
         contents: prompt
     });
     
-    const analysisText = response.text;
+    // Safely access text
+    const analysisText = response.text ?? '';
+    
     if (!analysisText) {
         return "Unable to generate analysis summary at this time.";
     }
@@ -177,7 +183,9 @@ Return your response as a single, clean JSON object that adheres to the provided
             }
         });
         
-        const text = response.text;
+        // Safely access text
+        const text = response.text ?? '';
+        
         if (!text) {
             throw new Error("No response received from AI service.");
         }
