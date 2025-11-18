@@ -27,7 +27,13 @@ ${text}
                 temperature: 0
             }
         });
-        const result = response.text.trim().toLowerCase();
+        
+        const responseText = response.text;
+        if (!responseText) {
+            return false;
+        }
+        
+        const result = responseText.trim().toLowerCase();
         return result === 'true';
     } catch (error) {
         console.error("Error during security check:", error);
@@ -96,7 +102,11 @@ Start with a one-sentence summary of the key takeaway. Then, briefly explain wha
         model,
         contents: prompt
     });
+    
     const analysisText = response.text;
+    if (!analysisText) {
+        return "Unable to generate analysis summary at this time.";
+    }
 
     const isMalicious = await checkForMaliciousIntent(analysisText);
     if (isMalicious) {
@@ -167,7 +177,12 @@ Return your response as a single, clean JSON object that adheres to the provided
             }
         });
         
-        const parsed = JSON.parse(response.text);
+        const text = response.text;
+        if (!text) {
+            throw new Error("No response received from AI service.");
+        }
+
+        const parsed = JSON.parse(text);
 
         const textToCheck = `${parsed.name} ${parsed.states.map((s: any) => s.name).join(' ')}`;
         const isMalicious = await checkForMaliciousIntent(textToCheck);
