@@ -175,11 +175,11 @@ const MentalChat: React.FC<MentalChatProps> = ({ isOpen, onClose, isFullPage = f
                         <span className={`${isMinimized ? 'text-lg' : 'text-2xl'}`}>🧘</span>
                     </div>
                     <div className="overflow-hidden">
-                        <h3 className={`font-bold text-white whitespace-nowrap ${isMinimized ? 'text-sm' : 'text-xl'}`}>Serenity (AI)</h3>
+                        <h3 className={`font-bold text-white whitespace-nowrap ${isMinimized ? 'text-sm' : 'text-xl'}`}>Mental Sanctuary</h3>
                         {!isMinimized && (
                             <span className="text-[10px] text-amber-300 flex items-center gap-1 whitespace-nowrap">
                                 <div className={`w-2 h-2 rounded-full ${initError ? 'bg-red-500' : 'bg-green-400 animate-pulse'}`}></div>
-                                {initError ? 'Service Unavailable' : 'Connected & Listening'}
+                                {initError ? 'Service Unavailable' : 'Serenity (AI)'}
                             </span>
                         )}
                     </div>

@@ -602,7 +602,7 @@ const App: React.FC = () => {
                     {/* Navigation Arrows */}
                     <button 
                         onClick={() => navigateMode('left')}
-                        className="absolute left-1 top-1/2 -translate-y-1/2 z-30 bg-gray-800/90 p-1.5 rounded-full text-white shadow-lg border border-gray-700 md:hidden active:scale-95 transition-all opacity-70 hover:opacity-100"
+                        className="absolute left-1 top-1/2 -translate-y-1/2 z-30 bg-gray-800/90 p-1.5 rounded-full text-white shadow-lg border border-gray-700 active:scale-95 transition-all opacity-70 hover:opacity-100"
                         aria-label="Previous Mode"
                     >
                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
@@ -610,7 +610,7 @@ const App: React.FC = () => {
                     
                     <button 
                         onClick={() => navigateMode('right')}
-                        className="absolute right-1 top-1/2 -translate-y-1/2 z-30 bg-gray-800/90 p-1.5 rounded-full text-white shadow-lg border border-gray-700 md:hidden active:scale-95 transition-all opacity-90 hover:opacity-100"
+                        className="absolute right-1 top-1/2 -translate-y-1/2 z-30 bg-gray-800/90 p-1.5 rounded-full text-white shadow-lg border border-gray-700 active:scale-95 transition-all opacity-90 hover:opacity-100"
                         aria-label="Next Mode"
                     >
                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
@@ -654,7 +654,7 @@ const App: React.FC = () => {
                             />
                              <ModeButton 
                                 mode="mental" 
-                                label="Mental Awareness" 
+                                label="Mental Sanctuary" 
                                 activeColor="bg-amber-600"
                                 icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
                                 onClick={() => setAppMode('mental')} 

@@ -63,6 +63,21 @@ const ProgrammerChat: React.FC<ProgrammerChatProps> = ({ isOpen, onClose }) => {
         }
     }, [messages, isLoading, isMinimized]);
 
+    const sendMessageWithRetry = async (session: Chat, text: string, retries = 1): Promise<AsyncIterable<GenerateContentResponse>> => {
+        try {
+            return await session.sendMessageStream({ message: text });
+        } catch (error) {
+            if (retries > 0) {
+                console.log("Retrying chat connection...");
+                // Recreate session
+                const newSession = createProgrammerChat();
+                setChatSession(newSession);
+                return await newSession.sendMessageStream({ message: text });
+            }
+            throw error;
+        }
+    };
+
     const handleSend = async () => {
         if (!input.trim() || isLoading) return;
         
@@ -94,7 +109,8 @@ const ProgrammerChat: React.FC<ProgrammerChatProps> = ({ isOpen, onClose }) => {
         setIsLoading(true);
 
         try {
-            const result = await activeSession.sendMessageStream({ message: userText });
+            // Use wrapper with retry logic
+            const result = await sendMessageWithRetry(activeSession, userText);
             
             let fullText = "";
             const currentMsgId = generateUUID();
@@ -141,8 +157,10 @@ const ProgrammerChat: React.FC<ProgrammerChatProps> = ({ isOpen, onClose }) => {
                 role: 'model', 
                 text: e.message?.includes("API_KEY") 
                     ? "Error: API Key not found. Please ensure the API_KEY environment variable is set."
-                    : "Error: Unable to connect to developer knowledge base. Please check your network connection." 
+                    : "Connection unstable. I've refreshed the knowledge base connection. Please try asking again." 
             }]);
+            // If error occurred, force session recreation next time
+            setChatSession(null);
         } finally {
             setIsLoading(false);
             setTimeout(() => inputRef.current?.focus(), 50);
