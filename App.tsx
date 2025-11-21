@@ -21,7 +21,8 @@ const App: React.FC = () => {
         const saved = localStorage.getItem('poa_variables');
         if (saved) {
             try {
-                return JSON.parse(saved);
+                const parsed = JSON.parse(saved);
+                if (Array.isArray(parsed)) return parsed;
             } catch (e) {
                 console.error("Error parsing saved variables:", e);
             }
@@ -254,7 +255,7 @@ const App: React.FC = () => {
             generateCombinations(0, [], 1);
             
             if (combinations.length === 0) {
-                throw new Error("Could not generate any combinations.");
+                throw new Error("Could not generate any combinations. Ensure outcomes match your target outcome name.");
             }
 
             const best = combinations.reduce((max, current) => current.probability > max.probability ? current : max, combinations[0]);

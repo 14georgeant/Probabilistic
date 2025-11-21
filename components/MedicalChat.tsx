@@ -70,11 +70,12 @@ const MedicalChat: React.FC<MedicalChatProps> = ({ isOpen, onClose }) => {
                 setInitError(null);
             } catch (e: any) {
                 console.error("Recovery failed:", e);
-                setInitError(e.message || "Connection Error");
+                const msg = e.message || "Unknown error";
+                setInitError(msg);
                 setMessages(prev => [...prev, { 
                      id: crypto.randomUUID(), 
                      role: 'model', 
-                     text: `Configuration Error: ${e.message || "Unable to initialize chat."} Please check your API Key.` 
+                     text: `System Error: ${msg.includes("API_KEY") ? "API Key configuration missing." : "Unable to connect."} Please check your deployment settings.` 
                 }]);
                 // Clear input so user can try again if they fix it
                 setInput(''); 
@@ -131,9 +132,15 @@ const MedicalChat: React.FC<MedicalChatProps> = ({ isOpen, onClose }) => {
                 m.id === currentMsgId ? { ...m, text: fullText, sources: sources } : m
             ));
 
-        } catch (e) {
+        } catch (e: any) {
             console.error("Chat Error:", e);
-            setMessages(prev => [...prev, { id: crypto.randomUUID(), role: 'model', text: "Error: Unable to connect to medical knowledge base. Please check your network connection." }]);
+            setMessages(prev => [...prev, { 
+                id: crypto.randomUUID(), 
+                role: 'model', 
+                text: e.message?.includes("API_KEY") 
+                    ? "Error: API Key not found. Please ensure the API_KEY environment variable is set."
+                    : "Error: Unable to connect to medical knowledge base. Please check your network connection." 
+            }]);
         } finally {
             setIsLoading(false);
             setTimeout(() => inputRef.current?.focus(), 50);
@@ -212,7 +219,7 @@ const MedicalChat: React.FC<MedicalChatProps> = ({ isOpen, onClose }) => {
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        placeholder={initError ? "System offline - Check config to reconnect..." : "Ask about symptoms, drug interactions, or research..."}
+                        placeholder={initError ? "System offline - Check config..." : "Ask about symptoms, drug interactions, or research..."}
                         className={`w-full bg-gray-800 border rounded-full py-3 px-5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:border-transparent pr-12 shadow-inner transition-colors ${
                             initError 
                             ? 'border-red-500/50 focus:ring-red-500/50 placeholder-red-400/50' 
@@ -237,7 +244,7 @@ const MedicalChat: React.FC<MedicalChatProps> = ({ isOpen, onClose }) => {
                 </div>
                 {initError && (
                     <p className="text-[10px] text-center text-red-400 mt-2 animate-pulse">
-                        {initError.includes("API_KEY") ? "API Key Missing" : "Connection Failed"}
+                        {initError.includes("API_KEY") ? "Configuration Error: API Key is missing." : "Connection Failed"}
                     </p>
                 )}
                 {!initError && (
