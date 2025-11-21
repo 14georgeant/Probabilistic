@@ -5,9 +5,11 @@ import VariableInputList from './components/VariableInputList';
 import ResultsDisplay from './components/ResultsDisplay';
 import { generateAnalysisSummary } from './services/geminiService';
 import LinkAnalyzer from './components/LinkAnalyzer';
+import PriceActionAnalyzer from './components/PriceActionAnalyzer';
 import TermsModal from './components/TermsModal';
 import GeminiTerminal from './components/GeminiTerminal';
 import MedicalChat from './components/MedicalChat';
+import TradaysCalendar from './components/TradaysCalendar';
 
 const App: React.FC = () => {
     // App Mode: 'general' (Cyan), 'financial' (Emerald), 'health' (Rose), 'medical' (Indigo)
@@ -56,7 +58,7 @@ const App: React.FC = () => {
     const [geminiInsights, setGeminiInsights] = useState<string>('');
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
-    const [activeTab, setActiveTab] = useState<'manual' | 'ai'>('manual');
+    const [activeTab, setActiveTab] = useState<'manual' | 'ai' | 'price_action'>('manual');
     const [isBlocked, setIsBlocked] = useState<boolean>(false);
     const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
     const [isTerminalOpen, setIsTerminalOpen] = useState<boolean>(false);
@@ -78,6 +80,13 @@ const App: React.FC = () => {
     useEffect(() => {
         localStorage.setItem('poa_target_outcome', targetOutcomeName);
     }, [targetOutcomeName]);
+
+    useEffect(() => {
+        // Reset active tab if not in financial mode but price_action was selected
+        if (appMode !== 'financial' && activeTab === 'price_action') {
+            setActiveTab('manual');
+        }
+    }, [appMode]);
 
     useEffect(() => {
         const accepted = localStorage.getItem('poa_terms_accepted');
@@ -334,7 +343,7 @@ const App: React.FC = () => {
 
     const theme = getThemeColors();
 
-    const TabButton: React.FC<{tabName: 'manual' | 'ai'; label: string;}> = ({ tabName, label }) => (
+    const TabButton: React.FC<{tabName: 'manual' | 'ai' | 'price_action'; label: string;}> = ({ tabName, label }) => (
          <button
             onClick={() => setActiveTab(tabName)}
             className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors focus:outline-none ${
@@ -431,70 +440,86 @@ const App: React.FC = () => {
                 </div>
             </div>
 
-            <main className="flex-grow container mx-auto p-4 md:p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className={`bg-gray-800 p-6 rounded-lg shadow-2xl flex flex-col border-t-4 ${theme.border}`}>
-                    <h2 className={`text-2xl font-bold mb-4 ${theme.text}`}>
-                        1. {appMode === 'medical' ? 'Clinical Factors & Symptoms' : appMode === 'health' ? 'Bio-Metrics & Routines' : appMode === 'financial' ? 'Portfolio & Risk Factors' : 'Define Variables & Outcomes'}
-                    </h2>
-                     <div className="mb-6">
-                        <label htmlFor="targetOutcome" className="block text-sm font-medium text-gray-300 mb-2">
-                            {appMode === 'medical' ? 'Clinical Goal (e.g., Accurate Diagnosis, Recovery)' : appMode === 'health' ? 'Performance Goal (e.g., Weight Loss, Hypertrophy)' : appMode === 'financial' ? 'Financial Goal (e.g., High ROI, Solvency)' : 'Target Outcome Name'}
-                        </label>
-                        <input
-                            id="targetOutcome"
-                            type="text"
-                            value={targetOutcomeName}
-                            onChange={(e) => setTargetOutcomeName(e.target.value)}
-                            placeholder={appMode === 'medical' ? "e.g., Disease Remission" : appMode === 'health' ? "e.g., Sub-3 Hour Marathon" : appMode === 'financial' ? "e.g., Maximize Returns" : "e.g., Success, Sale, Conversion"}
-                            className={`w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white placeholder-gray-400 focus:ring-2 transition ${theme.focus}`}
-                        />
-                    </div>
-                    
-                    <div className="flex border-b border-gray-700 mb-4">
-                        <TabButton tabName="manual" label="Manual Input" />
-                        <TabButton tabName="ai" label="AI Assistant (from Link)" />
-                    </div>
+            <main className="flex-grow container mx-auto p-4 md:p-8">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+                    <div className={`bg-gray-800 p-6 rounded-lg shadow-2xl flex flex-col border-t-4 ${theme.border}`}>
+                        <h2 className={`text-2xl font-bold mb-4 ${theme.text}`}>
+                            1. {appMode === 'medical' ? 'Clinical Factors & Symptoms' : appMode === 'health' ? 'Bio-Metrics & Routines' : appMode === 'financial' ? 'Portfolio & Risk Factors' : 'Define Variables & Outcomes'}
+                        </h2>
+                        <div className="mb-6">
+                            <label htmlFor="targetOutcome" className="block text-sm font-medium text-gray-300 mb-2">
+                                {appMode === 'medical' ? 'Clinical Goal (e.g., Accurate Diagnosis, Recovery)' : appMode === 'health' ? 'Performance Goal (e.g., Weight Loss, Hypertrophy)' : appMode === 'financial' ? 'Financial Goal (e.g., High ROI, Solvency)' : 'Target Outcome Name'}
+                            </label>
+                            <input
+                                id="targetOutcome"
+                                type="text"
+                                value={targetOutcomeName}
+                                onChange={(e) => setTargetOutcomeName(e.target.value)}
+                                placeholder={appMode === 'medical' ? "e.g., Disease Remission" : appMode === 'health' ? "e.g., Sub-3 Hour Marathon" : appMode === 'financial' ? "e.g., Maximize Returns" : "e.g., Success, Sale, Conversion"}
+                                className={`w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white placeholder-gray-400 focus:ring-2 transition ${theme.focus}`}
+                            />
+                        </div>
+                        
+                        <div className="flex border-b border-gray-700 mb-4 overflow-x-auto">
+                            <TabButton tabName="manual" label="Manual Input" />
+                            <TabButton tabName="ai" label="AI Assistant (Link)" />
+                            {appMode === 'financial' && <TabButton tabName="price_action" label="Price Action" />}
+                        </div>
 
-                    <div className="flex-grow">
-                        {activeTab === 'manual' ? (
-                            <VariableInputList variables={variables} setVariables={setVariables} />
-                        ) : (
-                            <LinkAnalyzer 
-                                onVariableGenerated={handleAddVariable} 
-                                onSecurityRisk={handleSecurityRisk} 
-                                isOnline={isOnline}
+                        <div className="flex-grow">
+                            {activeTab === 'manual' ? (
+                                <VariableInputList variables={variables} setVariables={setVariables} />
+                            ) : activeTab === 'ai' ? (
+                                <LinkAnalyzer 
+                                    onVariableGenerated={handleAddVariable} 
+                                    onSecurityRisk={handleSecurityRisk} 
+                                    isOnline={isOnline}
+                                    mode={appMode}
+                                />
+                            ) : (
+                                <PriceActionAnalyzer
+                                    onVariableGenerated={handleAddVariable}
+                                    onSecurityRisk={handleSecurityRisk}
+                                    isOnline={isOnline}
+                                />
+                            )}
+                        </div>
+                    </div>
+                    <div className={`bg-gray-800 p-6 rounded-lg shadow-2xl border-t-4 ${theme.border} relative`}>
+                        <div className="flex justify-between items-center mb-4">
+                            <h2 className={`text-2xl font-bold ${theme.text}`}>
+                                2. {appMode === 'medical' ? 'Clinical Analysis' : appMode === 'health' ? 'Performance Analysis' : appMode === 'financial' ? 'Advisory & Forecast' : 'Analysis & Impact'}
+                            </h2>
+                            {appMode === 'medical' && (
+                                <button 
+                                    onClick={() => setIsMedicalChatOpen(true)}
+                                    className="text-xs bg-indigo-700 hover:bg-indigo-600 text-white px-3 py-1 rounded-full flex items-center gap-1 animate-pulse"
+                                >
+                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+                                    AI Helper
+                                </button>
+                            )}
+                        </div>
+                        
+                        <div className="h-full flex flex-col">
+                            {error && <div className="bg-red-900 border border-red-700 text-red-200 p-3 rounded-md mb-4">{error}</div>}
+                            <ResultsDisplay 
+                                result={analysisResult} 
+                                insights={geminiInsights} 
+                                isLoading={isLoading}
+                                variables={variables}
                                 mode={appMode}
                             />
-                        )}
+                        </div>
                     </div>
                 </div>
-                <div className={`bg-gray-800 p-6 rounded-lg shadow-2xl border-t-4 ${theme.border} relative`}>
-                     <div className="flex justify-between items-center mb-4">
-                         <h2 className={`text-2xl font-bold ${theme.text}`}>
-                             2. {appMode === 'medical' ? 'Clinical Analysis' : appMode === 'health' ? 'Performance Analysis' : appMode === 'financial' ? 'Advisory & Forecast' : 'Analysis & Impact'}
-                         </h2>
-                         {appMode === 'medical' && (
-                             <button 
-                                onClick={() => setIsMedicalChatOpen(true)}
-                                className="text-xs bg-indigo-700 hover:bg-indigo-600 text-white px-3 py-1 rounded-full flex items-center gap-1 animate-pulse"
-                             >
-                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
-                                 AI Helper
-                             </button>
-                         )}
-                     </div>
-                     
-                     <div className="h-full flex flex-col">
-                         {error && <div className="bg-red-900 border border-red-700 text-red-200 p-3 rounded-md mb-4">{error}</div>}
-                         <ResultsDisplay 
-                            result={analysisResult} 
-                            insights={geminiInsights} 
-                            isLoading={isLoading}
-                            variables={variables}
-                            mode={appMode}
-                         />
-                     </div>
-                </div>
+
+                {/* Financial Mode Extras: Tradays Calendar */}
+                {appMode === 'financial' && (
+                    <div className="mt-8 animate-in slide-in-from-bottom duration-700">
+                        <TradaysCalendar />
+                    </div>
+                )}
             </main>
             
             <GeminiTerminal 
@@ -509,7 +534,7 @@ const App: React.FC = () => {
                 onClose={() => setIsMedicalChatOpen(false)}
             />
 
-            <footer className="sticky bottom-0 bg-gray-900/80 backdrop-blur-sm p-4 border-t border-gray-700">
+            <footer className="sticky bottom-0 bg-gray-900/80 backdrop-blur-sm p-4 border-t border-gray-700 z-10">
                 <div className="container mx-auto flex justify-center">
                     <button
                         onClick={handleAnalyze}

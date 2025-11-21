@@ -348,6 +348,83 @@ ${JSON.stringify(variableSchema, null, 2)}
     }
 };
 
+// Updated function for analyzing Price Action description AND image
+export const analyzePriceAction = async (description: string, imageBase64?: string, mimeType: string = 'image/jpeg'): Promise<Variable> => {
+    const prompt = `
+    You are a Professional Technical Analyst for Financial Markets (Forex, Crypto, Stocks).
+    Your task is to analyze the provided context (Price Action Description and/or Chart Image).
+    
+    ${imageBase64 ? 'An image of the chart has been provided as an external reference.' : ''}
+    ${description ? `USER DESCRIPTION: "${description}"` : ''}
+    
+    **INSTRUCTIONS:**
+    1. Identify the core pattern (e.g., "Head and Shoulders", "Bullish Divergence", "Breakout retest").
+    2. Define 2-3 possible future states (e.g., "Bullish Continuation", "Bearish Reversal", "False Breakout").
+    3. Assign probabilities to each state based on standard technical analysis theory for that pattern.
+    4. Ensure the variable name is descriptive (e.g., "H4 Market Structure", "RSI Divergence Impact").
+
+    **OUTPUT FORMAT:**
+    You must return ONLY a valid JSON object adhering to this schema:
+    ${JSON.stringify(variableSchema, null, 2)}
+    `;
+
+    try {
+        const ai = getAiClient();
+        
+        // Prepare contents with multimodal input support
+        const contents: any[] = [];
+        
+        if (imageBase64) {
+            contents.push({
+                inlineData: {
+                    mimeType: mimeType,
+                    data: imageBase64
+                }
+            });
+        }
+        
+        contents.push({ text: prompt });
+
+        const response = await ai.models.generateContent({
+            model, // using gemini-2.5-flash which supports vision
+            contents: contents,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: variableSchema
+            }
+        });
+
+        const text = response.text;
+        if (!text) throw new Error("No response from AI.");
+        
+        const parsed = JSON.parse(text);
+        
+        const textToCheck = `${parsed.name} ${parsed.states.map((s: any) => s.name).join(' ')}`;
+        if (await checkForMaliciousIntent(textToCheck)) {
+            throw new Error("SECURITY_RISK_DETECTED: Malicious content in price action analysis.");
+        }
+
+        return {
+            id: crypto.randomUUID(),
+            name: parsed.name,
+            states: parsed.states.map((s: any) => ({
+                id: crypto.randomUUID(),
+                name: s.name,
+                outcomes: s.outcomes.map((o: any) => ({
+                    id: crypto.randomUUID(),
+                    name: o.name || 'Success',
+                    probability: o.probability
+                }))
+            }))
+        };
+
+    } catch (error) {
+        console.error("Price action analysis error:", error);
+        if (error instanceof Error && error.message.startsWith('SECURITY_RISK_DETECTED')) throw error;
+        throw new Error("Failed to analyze price action.");
+    }
+};
+
 // New function for Batch CLI processing
 export const processBatchData = async (inputData: string): Promise<Variable[]> => {
     const variableListSchema = {
