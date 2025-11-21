@@ -24,7 +24,7 @@ const MedicalChat: React.FC<MedicalChatProps> = ({ isOpen, onClose }) => {
     ]);
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    const [initError, setInitError] = useState(false);
+    const [initError, setInitError] = useState<string | null>(null);
     const [chatSession, setChatSession] = useState<Chat | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
@@ -35,10 +35,10 @@ const MedicalChat: React.FC<MedicalChatProps> = ({ isOpen, onClose }) => {
             try {
                 const session = createMedicalChat();
                 setChatSession(session);
-                setInitError(false);
-            } catch (e) {
+                setInitError(null);
+            } catch (e: any) {
                 console.error("Failed to init medical chat", e);
-                setInitError(true);
+                setInitError(e.message || "Connection Error");
             }
         }
     }, [isOpen, chatSession]);
@@ -67,15 +67,17 @@ const MedicalChat: React.FC<MedicalChatProps> = ({ isOpen, onClose }) => {
             try {
                 activeSession = createMedicalChat();
                 setChatSession(activeSession);
-                setInitError(false);
-            } catch (e) {
+                setInitError(null);
+            } catch (e: any) {
                 console.error("Recovery failed:", e);
-                setInitError(true);
+                setInitError(e.message || "Connection Error");
                 setMessages(prev => [...prev, { 
                      id: crypto.randomUUID(), 
                      role: 'model', 
-                     text: "Configuration Error: Unable to initialize chat. Please check your API Key settings or network connection." 
+                     text: `Configuration Error: ${e.message || "Unable to initialize chat."} Please check your API Key.` 
                 }]);
+                // Clear input so user can try again if they fix it
+                setInput(''); 
                 return;
             }
         }
@@ -131,7 +133,7 @@ const MedicalChat: React.FC<MedicalChatProps> = ({ isOpen, onClose }) => {
 
         } catch (e) {
             console.error("Chat Error:", e);
-            setMessages(prev => [...prev, { id: crypto.randomUUID(), role: 'model', text: "Error: Unable to connect to medical knowledge base. Please check your connection and try again." }]);
+            setMessages(prev => [...prev, { id: crypto.randomUUID(), role: 'model', text: "Error: Unable to connect to medical knowledge base. Please check your network connection." }]);
         } finally {
             setIsLoading(false);
             setTimeout(() => inputRef.current?.focus(), 50);
@@ -159,7 +161,7 @@ const MedicalChat: React.FC<MedicalChatProps> = ({ isOpen, onClose }) => {
                         <h3 className="font-bold text-white">Medical Helper AI</h3>
                         <span className="text-[10px] text-indigo-300 flex items-center gap-1">
                             <div className={`w-2 h-2 rounded-full ${initError ? 'bg-red-500' : 'bg-green-400 animate-pulse'}`}></div>
-                            {initError ? 'Connection Issues' : 'Connected to Medical Journals'}
+                            {initError ? 'Service Unavailable' : 'Connected to Medical Journals'}
                         </span>
                     </div>
                 </div>
@@ -210,14 +212,15 @@ const MedicalChat: React.FC<MedicalChatProps> = ({ isOpen, onClose }) => {
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        placeholder={initError ? "Type your message..." : "Ask about symptoms, drug interactions, or research..."}
-                        className={`w-full bg-gray-800 border rounded-full py-3 px-5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:border-transparent pr-12 shadow-inner ${
+                        placeholder={initError ? "System offline - Check config to reconnect..." : "Ask about symptoms, drug interactions, or research..."}
+                        className={`w-full bg-gray-800 border rounded-full py-3 px-5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:border-transparent pr-12 shadow-inner transition-colors ${
                             initError 
-                            ? 'border-red-500/30 focus:ring-red-500/50' 
+                            ? 'border-red-500/50 focus:ring-red-500/50 placeholder-red-400/50' 
                             : 'border-indigo-500/30 focus:ring-indigo-500'
                         }`}
                         disabled={isLoading}
                         autoComplete="off"
+                        autoFocus
                     />
                     <button 
                         type="button"
@@ -232,9 +235,16 @@ const MedicalChat: React.FC<MedicalChatProps> = ({ isOpen, onClose }) => {
                         )}
                     </button>
                 </div>
-                <p className="text-[10px] text-center text-gray-500 mt-2">
-                    AI-generated content. For research only. Not a substitute for professional medical advice.
-                </p>
+                {initError && (
+                    <p className="text-[10px] text-center text-red-400 mt-2 animate-pulse">
+                        {initError.includes("API_KEY") ? "API Key Missing" : "Connection Failed"}
+                    </p>
+                )}
+                {!initError && (
+                    <p className="text-[10px] text-center text-gray-500 mt-2">
+                        AI-generated content. For research only. Not a substitute for professional medical advice.
+                    </p>
+                )}
             </div>
         </div>
     );

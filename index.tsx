@@ -22,12 +22,15 @@ if (!rootElement) {
 // Register Service Worker for PWA/Play Store support
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
+    // Use absolute path '/service-worker.js' to ensure correct scope resolution
+    // regardless of hosting subdirectory or environment.
     navigator.serviceWorker.register('/service-worker.js').then(
       (registration) => {
         console.log('ServiceWorker registration successful with scope: ', registration.scope);
       },
       (err) => {
-        console.log('ServiceWorker registration failed: ', err);
+        // Log error but do not crash application
+        console.warn('ServiceWorker registration failed: ', err);
       }
     );
   });
