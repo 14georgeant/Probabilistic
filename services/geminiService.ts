@@ -1,4 +1,4 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Type, Chat } from "@google/genai";
 import { Variable, AnalysisResult, Outcome, VariableState } from '../types';
 
 // Explicitly declare process for TypeScript since we are in a browser context
@@ -60,7 +60,7 @@ ${text}
 export const generateAnalysisSummary = async (
     variables: Variable[], 
     result: AnalysisResult, 
-    mode: 'general' | 'financial' | 'health' = 'general'
+    mode: 'general' | 'financial' | 'health' | 'medical' = 'general'
 ): Promise<string> => {
 
   const variablesDescription = variables.map(v => 
@@ -116,6 +116,27 @@ export const generateAnalysisSummary = async (
       #### 4. Protocol Adjustments
       - **Action Plan:** Give a specific instruction to fix the bottleneck (e.g., "Increase protein intake to 2g/kg", "Implement deload week").
       - **Metric to Track:** Suggest a new variable to measure (e.g., "Resting Heart Rate", "Caloric Deficit").
+      `;
+  } else if (mode === 'medical') {
+      systemPrompt = `You are a Senior Clinical Research Fellow. Your goal is to analyze the user's model of symptoms or clinical factors and provide a probabilistic assessment based on medical logic.
+      
+      **DISCLAIMER:** You must start with: "This analysis is for informational and educational purposes only and does not constitute medical advice or diagnosis. Always consult a healthcare professional."
+      
+      **Role:** Clinical Researcher.
+      **Tone:** Academic, Clinical, Empathetic, Rigorous.
+      
+      **Structure your advice as follows:**
+      #### 1. Clinical Assessment
+      Evaluate the probability of the outcome based on the presented symptoms/factors. Use clinical terminology (e.g., "Prognosis", "Etiology", "Risk Factors").
+      
+      #### 2. Primary Indication
+      Identify the factor that correlates most strongly with the positive outcome.
+      
+      #### 3. Contraindications / Risks
+      Identify the factor reducing the probability of success. (e.g., "Non-adherence", "Comorbidity").
+      
+      #### 4. Recommended Clinical Investigation
+      Suggest further variables to investigate or tests to consider (e.g., "Monitor Blood Pressure", "Check family history").
       `;
   } else {
       systemPrompt = `You are a senior product analyst and technical advisor. Your goal is to provide unbiased, constructive, and actionable advice to help a user improve their strategy.
@@ -208,7 +229,7 @@ const variableSchema = {
 
 export const analyzeLinkForVariables = async (
     url: string, 
-    mode: 'general' | 'financial' | 'health' = 'general'
+    mode: 'general' | 'financial' | 'health' | 'medical' = 'general'
 ): Promise<{ variable: Variable; sources: { title: string; uri: string }[] }> => {
     
     let instructions = "";
@@ -228,6 +249,14 @@ export const analyzeLinkForVariables = async (
         - If it's a **Recipe/Food**: Variable name: "Dietary Impact" or "Macro Profile". States: "High Protein/Anabolic", "High Calorie/Bulking", "Clean/Maintenance".
         - If it's a **Workout Video**: Variable name: "Training Stimulus". States: "Hypertrophy (Muscle Gain)", "Endurance", "Active Recovery".
         - If it's **Supplement/Gear**: Variable name: "Performance Aid". States: "Effective", "Placebo/Low Impact".
+        `;
+    } else if (mode === 'medical') {
+        instructions = `
+        This is for a **Medical Research Model**.
+        Analyze the URL (e.g., PubMed, Medical Journal) for clinical study results or symptom analysis.
+        - If it's a **Clinical Study**: Variable name: "Treatment Efficacy" or "Drug Response". States: "Effective (High Conf)", "Inconclusive", "Adverse Effects".
+        - If it's **Symptom Info**: Variable name: "Disease Probability". States: "High Likelihood", "Low Likelihood".
+        - PRIORITIZE ACCURACY based on the text.
         `;
     } else {
         instructions = `
@@ -412,4 +441,30 @@ export const generateCppAdaptivityCode = async (variables: Variable[]): Promise<
     } catch (e) {
         return "// Error generating C++ code: " + (e instanceof Error ? e.message : "Unknown error");
     }
+};
+
+// Create a dedicated Chat Session for Medical use using the reasoning model
+export const createMedicalChat = (): Chat => {
+    const ai = getAiClient();
+    // Using gemini-3-pro-preview for complex medical reasoning tasks
+    return ai.chats.create({
+        model: 'gemini-3-pro-preview',
+        config: {
+            systemInstruction: `You are a helpful, highly knowledgeable Medical Research Assistant.
+            
+            YOUR GOAL:
+            Provide accurate, science-backed medical information to the user to help them understand symptoms, treatments, or health concepts.
+            
+            STRICT RULES:
+            1. **Google Search**: You MUST use the Google Search tool to find information from approved medical journals (PubMed, JAMA, Lancet, NEJM, Nature Medicine, etc.) or reputable health organizations (CDC, WHO, Mayo Clinic).
+            2. **Citations**: You MUST cite your sources. If Google Search provides a link, include it.
+            3. **Tone**: Professional, clinical, yet accessible and user-friendly.
+            4. **Disclaimer**: You MUST always include a disclaimer that you are an AI and this is not medical advice.
+            5. **Formatting**: Use Markdown for readability.
+            
+            If asked about specific medical advice for an individual, generalize the answer and strongly advise consulting a doctor.
+            `,
+            tools: [{ googleSearch: {} }]
+        }
+    });
 };

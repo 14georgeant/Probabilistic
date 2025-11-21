@@ -7,10 +7,11 @@ import { generateAnalysisSummary } from './services/geminiService';
 import LinkAnalyzer from './components/LinkAnalyzer';
 import TermsModal from './components/TermsModal';
 import GeminiTerminal from './components/GeminiTerminal';
+import MedicalChat from './components/MedicalChat';
 
 const App: React.FC = () => {
-    // App Mode: 'general' (Cyan), 'financial' (Emerald), 'health' (Rose)
-    const [appMode, setAppMode] = useState<'general' | 'financial' | 'health'>('general');
+    // App Mode: 'general' (Cyan), 'financial' (Emerald), 'health' (Rose), 'medical' (Indigo)
+    const [appMode, setAppMode] = useState<'general' | 'financial' | 'health' | 'medical'>('general');
 
     const [variables, setVariables] = useState<Variable[]>([
         {
@@ -39,6 +40,7 @@ const App: React.FC = () => {
     const [isBlocked, setIsBlocked] = useState<boolean>(false);
     const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
     const [isTerminalOpen, setIsTerminalOpen] = useState<boolean>(false);
+    const [isMedicalChatOpen, setIsMedicalChatOpen] = useState<boolean>(false);
     
     // Terms and Privacy State
     const [hasAcceptedTerms, setHasAcceptedTerms] = useState<boolean>(false);
@@ -132,6 +134,32 @@ const App: React.FC = () => {
                 states: [
                     { id: crypto.randomUUID(), name: 'Progressive Overload', outcomes: [{ id: crypto.randomUUID(), name: 'Peak Performance', probability: 80 }] },
                     { id: crypto.randomUUID(), name: 'Overtraining', outcomes: [{ id: crypto.randomUUID(), name: 'Peak Performance', probability: 25 }] },
+                ]
+            }
+        ]);
+        setAnalysisResult(null);
+        setGeminiInsights('');
+    };
+
+    const handleLoadMedicalTemplate = () => {
+        setAppMode('medical');
+        setTargetOutcomeName('Positive Prognosis');
+        setIsMedicalChatOpen(true);
+        setVariables([
+            {
+                id: crypto.randomUUID(),
+                name: 'Symptom Presentation',
+                states: [
+                    { id: crypto.randomUUID(), name: 'Acute Onset (<24h)', outcomes: [{ id: crypto.randomUUID(), name: 'Positive Prognosis', probability: 45 }] },
+                    { id: crypto.randomUUID(), name: 'Chronic (>2 weeks)', outcomes: [{ id: crypto.randomUUID(), name: 'Positive Prognosis', probability: 60 }] }
+                ]
+            },
+            {
+                id: crypto.randomUUID(),
+                name: 'Treatment Adherence',
+                states: [
+                    { id: crypto.randomUUID(), name: 'Strict Adherence', outcomes: [{ id: crypto.randomUUID(), name: 'Positive Prognosis', probability: 95 }] },
+                    { id: crypto.randomUUID(), name: 'Intermittent', outcomes: [{ id: crypto.randomUUID(), name: 'Positive Prognosis', probability: 55 }] }
                 ]
             }
         ]);
@@ -252,6 +280,14 @@ const App: React.FC = () => {
                 btn: 'bg-rose-600 hover:bg-rose-500',
                 focus: 'focus:ring-rose-500'
             };
+            case 'medical': return {
+                text: 'text-indigo-400',
+                bg: 'bg-indigo-900',
+                border: 'border-indigo-500',
+                hover: 'hover:text-indigo-300',
+                btn: 'bg-indigo-600 hover:bg-indigo-500',
+                focus: 'focus:ring-indigo-500'
+            };
             default: return {
                 text: 'text-cyan-400',
                 bg: 'bg-gray-700', // special case
@@ -334,6 +370,14 @@ const App: React.FC = () => {
                             Health & Sport
                             <span className="ml-1 bg-gradient-to-r from-amber-300 to-orange-500 text-black text-[8px] px-1 rounded font-black tracking-tighter">PREMIUM</span>
                         </button>
+                        <button 
+                            onClick={() => setAppMode('medical')}
+                            className={`px-3 md:px-4 py-1.5 rounded-md text-xs md:text-sm font-bold transition-all flex items-center gap-2 ${appMode === 'medical' ? 'bg-indigo-900 text-indigo-400 shadow' : 'text-gray-500 hover:text-gray-300'}`}
+                        >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+                            Medical Research
+                            <span className="ml-1 bg-indigo-500 text-white text-[8px] px-1 rounded font-black tracking-tighter">CLINICAL</span>
+                        </button>
                     </div>
                     
                     {appMode === 'financial' && (
@@ -346,24 +390,29 @@ const App: React.FC = () => {
                              Populate Fitness Template
                          </button>
                     )}
+                    {appMode === 'medical' && (
+                         <button onClick={handleLoadMedicalTemplate} className="text-xs text-indigo-400 hover:text-indigo-300 underline decoration-dotted">
+                             Populate Clinical Template
+                         </button>
+                    )}
                 </div>
             </div>
 
             <main className="flex-grow container mx-auto p-4 md:p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className={`bg-gray-800 p-6 rounded-lg shadow-2xl flex flex-col border-t-4 ${theme.border}`}>
                     <h2 className={`text-2xl font-bold mb-4 ${theme.text}`}>
-                        1. {appMode === 'health' ? 'Bio-Metrics & Routines' : appMode === 'financial' ? 'Portfolio & Risk Factors' : 'Define Variables & Outcomes'}
+                        1. {appMode === 'medical' ? 'Clinical Factors & Symptoms' : appMode === 'health' ? 'Bio-Metrics & Routines' : appMode === 'financial' ? 'Portfolio & Risk Factors' : 'Define Variables & Outcomes'}
                     </h2>
                      <div className="mb-6">
                         <label htmlFor="targetOutcome" className="block text-sm font-medium text-gray-300 mb-2">
-                            {appMode === 'health' ? 'Performance Goal (e.g., Weight Loss, Hypertrophy)' : appMode === 'financial' ? 'Financial Goal (e.g., High ROI, Solvency)' : 'Target Outcome Name'}
+                            {appMode === 'medical' ? 'Clinical Goal (e.g., Accurate Diagnosis, Recovery)' : appMode === 'health' ? 'Performance Goal (e.g., Weight Loss, Hypertrophy)' : appMode === 'financial' ? 'Financial Goal (e.g., High ROI, Solvency)' : 'Target Outcome Name'}
                         </label>
                         <input
                             id="targetOutcome"
                             type="text"
                             value={targetOutcomeName}
                             onChange={(e) => setTargetOutcomeName(e.target.value)}
-                            placeholder={appMode === 'health' ? "e.g., Sub-3 Hour Marathon" : appMode === 'financial' ? "e.g., Maximize Returns" : "e.g., Success, Sale, Conversion"}
+                            placeholder={appMode === 'medical' ? "e.g., Disease Remission" : appMode === 'health' ? "e.g., Sub-3 Hour Marathon" : appMode === 'financial' ? "e.g., Maximize Returns" : "e.g., Success, Sale, Conversion"}
                             className={`w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white placeholder-gray-400 focus:ring-2 transition ${theme.focus}`}
                         />
                     </div>
@@ -386,10 +435,22 @@ const App: React.FC = () => {
                         )}
                     </div>
                 </div>
-                <div className={`bg-gray-800 p-6 rounded-lg shadow-2xl border-t-4 ${theme.border}`}>
-                     <h2 className={`text-2xl font-bold mb-4 ${theme.text}`}>
-                         2. {appMode === 'health' ? 'Performance Analysis' : appMode === 'financial' ? 'Advisory & Forecast' : 'Analysis & Impact'}
-                     </h2>
+                <div className={`bg-gray-800 p-6 rounded-lg shadow-2xl border-t-4 ${theme.border} relative`}>
+                     <div className="flex justify-between items-center mb-4">
+                         <h2 className={`text-2xl font-bold ${theme.text}`}>
+                             2. {appMode === 'medical' ? 'Clinical Analysis' : appMode === 'health' ? 'Performance Analysis' : appMode === 'financial' ? 'Advisory & Forecast' : 'Analysis & Impact'}
+                         </h2>
+                         {appMode === 'medical' && (
+                             <button 
+                                onClick={() => setIsMedicalChatOpen(true)}
+                                className="text-xs bg-indigo-700 hover:bg-indigo-600 text-white px-3 py-1 rounded-full flex items-center gap-1 animate-pulse"
+                             >
+                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+                                 AI Helper
+                             </button>
+                         )}
+                     </div>
+                     
                      <div className="h-full flex flex-col">
                          {error && <div className="bg-red-900 border border-red-700 text-red-200 p-3 rounded-md mb-4">{error}</div>}
                          <ResultsDisplay 
@@ -410,6 +471,11 @@ const App: React.FC = () => {
                 variables={variables}
             />
 
+            <MedicalChat 
+                isOpen={isMedicalChatOpen}
+                onClose={() => setIsMedicalChatOpen(false)}
+            />
+
             <footer className="sticky bottom-0 bg-gray-900/80 backdrop-blur-sm p-4 border-t border-gray-700">
                 <div className="container mx-auto flex justify-center">
                     <button
@@ -421,7 +487,7 @@ const App: React.FC = () => {
                             : `${theme.btn} text-white hover:scale-105`
                         }`}
                     >
-                        {isLoading ? 'Analyzing...' : !isOnline ? 'Offline - Connect to Internet for AI' : `Generate ${appMode === 'health' ? 'Health Report' : appMode === 'financial' ? 'Financial Plan' : 'Analysis'}`}
+                        {isLoading ? 'Analyzing...' : !isOnline ? 'Offline - Connect to Internet for AI' : `Generate ${appMode === 'medical' ? 'Clinical Report' : appMode === 'health' ? 'Health Report' : appMode === 'financial' ? 'Financial Plan' : 'Analysis'}`}
                     </button>
                 </div>
             </footer>

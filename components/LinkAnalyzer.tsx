@@ -6,7 +6,7 @@ interface LinkAnalyzerProps {
     onVariableGenerated: (variable: Variable) => void;
     onSecurityRisk: () => void;
     isOnline: boolean;
-    mode?: 'general' | 'financial' | 'health';
+    mode?: 'general' | 'financial' | 'health' | 'medical';
 }
 
 const LinkAnalyzer: React.FC<LinkAnalyzerProps> = ({ onVariableGenerated, onSecurityRisk, isOnline, mode = 'general' }) => {
@@ -39,7 +39,7 @@ const LinkAnalyzer: React.FC<LinkAnalyzerProps> = ({ onVariableGenerated, onSecu
         setSources([]);
 
         try {
-            const { variable, sources } = await analyzeLinkForVariables(url, mode as 'general' | 'financial' | 'health');
+            const { variable, sources } = await analyzeLinkForVariables(url, mode as 'general' | 'financial' | 'health' | 'medical');
             setSuggestedVariable(variable);
             setSources(sources);
         } catch (e) {
@@ -78,6 +78,11 @@ const LinkAnalyzer: React.FC<LinkAnalyzerProps> = ({ onVariableGenerated, onSecu
         instructionsText = <span>Paste a link to a <strong>Workout, Diet Plan, or Supplement</strong> and the AI will analyze its impact on your performance.</span>;
         buttonClass = "bg-rose-600 hover:bg-rose-500";
         textClass = "text-rose-300";
+    } else if (mode === 'medical') {
+        placeholderText = "https://pubmed.ncbi.nlm.nih.gov/...";
+        instructionsText = <span>Paste a link to a <strong>Clinical Study (PubMed), Journal Article, or Disease Profile</strong> and the AI will extract the prognostic factors.</span>;
+        buttonClass = "bg-indigo-600 hover:bg-indigo-500";
+        textClass = "text-indigo-300";
     }
 
     return (
@@ -112,9 +117,9 @@ const LinkAnalyzer: React.FC<LinkAnalyzerProps> = ({ onVariableGenerated, onSecu
             <div className="flex-grow mt-4">
                 {isLoading && (
                      <div className="flex flex-col items-center justify-center h-full text-center">
-                        <div className={`animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 mb-4 ${mode === 'financial' ? 'border-emerald-500' : mode === 'health' ? 'border-rose-500' : 'border-cyan-500'}`}></div>
+                        <div className={`animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 mb-4 ${mode === 'financial' ? 'border-emerald-500' : mode === 'health' ? 'border-rose-500' : mode === 'medical' ? 'border-indigo-500' : 'border-cyan-500'}`}></div>
                         <p className="text-md font-semibold text-gray-300">Analyzing Content...</p>
-                        <p className="text-xs text-gray-400 mt-2">Evaluating {mode === 'financial' ? 'financial indicators' : mode === 'health' ? 'metabolic impact' : 'engagement & virality'}...</p>
+                        <p className="text-xs text-gray-400 mt-2">Evaluating {mode === 'financial' ? 'financial indicators' : mode === 'health' ? 'metabolic impact' : mode === 'medical' ? 'clinical significance' : 'engagement & virality'}...</p>
                     </div>
                 )}
                 {suggestedVariable && (
@@ -142,7 +147,7 @@ const LinkAnalyzer: React.FC<LinkAnalyzerProps> = ({ onVariableGenerated, onSecu
                                                 href={source.uri} 
                                                 target="_blank" 
                                                 rel="noopener noreferrer" 
-                                                className={`text-xs ${mode === 'financial' ? 'text-emerald-400 hover:text-emerald-300' : mode === 'health' ? 'text-rose-400 hover:text-rose-300' : 'text-cyan-400 hover:text-cyan-300'} hover:underline truncate block flex items-center`}
+                                                className={`text-xs ${mode === 'financial' ? 'text-emerald-400 hover:text-emerald-300' : mode === 'health' ? 'text-rose-400 hover:text-rose-300' : mode === 'medical' ? 'text-indigo-400 hover:text-indigo-300' : 'text-cyan-400 hover:text-cyan-300'} hover:underline truncate block flex items-center`}
                                             >
                                                 <svg className="w-3 h-3 mr-1 inline-block" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
                                                 {source.title}

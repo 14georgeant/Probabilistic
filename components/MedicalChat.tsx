@@ -1,0 +1,192 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Chat, GenerateContentResponse } from "@google/genai";
+import { createMedicalChat } from '../services/geminiService';
+
+interface MedicalChatProps {
+    isOpen: boolean;
+    onClose: () => void;
+}
+
+type Message = {
+    id: string;
+    role: 'user' | 'model';
+    text: string;
+    sources?: { title: string; uri: string }[];
+};
+
+const MedicalChat: React.FC<MedicalChatProps> = ({ isOpen, onClose }) => {
+    const [messages, setMessages] = useState<Message[]>([
+        { 
+            id: 'intro', 
+            role: 'model', 
+            text: "Hello. I am your Medical Research Assistant. I can help you analyze clinical data, understand medical journals, or explore symptoms using authorized medical sources. \n\n*Note: I provide information, not medical diagnosis.*" 
+        }
+    ]);
+    const [input, setInput] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+    const [chatSession, setChatSession] = useState<Chat | null>(null);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+
+    // Initialize chat session when opened
+    useEffect(() => {
+        if (isOpen && !chatSession) {
+            try {
+                const session = createMedicalChat();
+                setChatSession(session);
+            } catch (e) {
+                console.error("Failed to init medical chat", e);
+            }
+        }
+    }, [isOpen, chatSession]);
+
+    // Auto-scroll to bottom
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, [messages]);
+
+    const handleSend = async () => {
+        if (!input.trim() || !chatSession) return;
+
+        const userMsg: Message = { id: crypto.randomUUID(), role: 'user', text: input };
+        setMessages(prev => [...prev, userMsg]);
+        setInput('');
+        setIsLoading(true);
+
+        try {
+            const result = await chatSession.sendMessageStream({ message: userMsg.text });
+            
+            let fullText = "";
+            const currentMsgId = crypto.randomUUID();
+            let sources: { title: string; uri: string }[] = [];
+            
+            // Optimistic update for stream
+            setMessages(prev => [...prev, { id: currentMsgId, role: 'model', text: "..." }]);
+
+            for await (const chunk of result) {
+                const c = chunk as GenerateContentResponse;
+                if (c.text) {
+                    fullText += c.text;
+                    setMessages(prev => prev.map(m => 
+                        m.id === currentMsgId ? { ...m, text: fullText } : m
+                    ));
+                }
+                
+                // Extract sources from grounding metadata if available in chunks (typically in final chunk)
+                if (c.candidates?.[0]?.groundingMetadata?.groundingChunks) {
+                    const chunks = c.candidates[0].groundingMetadata.groundingChunks;
+                    const newSources: { title: string; uri: string }[] = [];
+                     chunks.forEach(k => {
+                        if (k.web) {
+                            newSources.push({
+                                title: k.web.title || 'Source',
+                                uri: k.web.uri || '#'
+                            });
+                        }
+                    });
+                    if (newSources.length > 0) {
+                        sources = newSources;
+                    }
+                }
+            }
+
+            // Final update with sources
+            setMessages(prev => prev.map(m => 
+                m.id === currentMsgId ? { ...m, text: fullText, sources: sources } : m
+            ));
+
+        } catch (e) {
+            setMessages(prev => [...prev, { id: crypto.randomUUID(), role: 'model', text: "Error: Unable to connect to medical knowledge base." }]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    if (!isOpen) return null;
+
+    return (
+        <div className="fixed inset-y-0 right-0 w-full md:w-[500px] bg-gray-900 shadow-2xl border-l border-indigo-500/50 transform transition-transform duration-300 z-50 flex flex-col">
+            {/* Header */}
+            <div className="bg-indigo-900/80 backdrop-blur-md p-4 border-b border-indigo-700 flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-lg">
+                        <svg className="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-white">Medical Helper AI</h3>
+                        <span className="text-[10px] text-indigo-300 flex items-center gap-1">
+                            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+                            Connected to Medical Journals
+                        </span>
+                    </div>
+                </div>
+                <button onClick={onClose} className="text-indigo-300 hover:text-white p-2">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+            </div>
+
+            {/* Messages Area */}
+            <div className="flex-grow overflow-y-auto p-4 space-y-4 bg-gray-800/50 terminal-scrollbar">
+                {messages.map((msg) => (
+                    <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-[85%] rounded-2xl p-4 ${
+                            msg.role === 'user' 
+                            ? 'bg-indigo-600 text-white rounded-br-none' 
+                            : 'bg-gray-700 border border-gray-600 text-gray-100 rounded-bl-none'
+                        }`}>
+                            <div className="prose prose-invert text-sm leading-relaxed whitespace-pre-wrap">
+                                {msg.text}
+                            </div>
+                            {msg.sources && msg.sources.length > 0 && (
+                                <div className="mt-3 pt-2 border-t border-gray-600/50">
+                                    <p className="text-[10px] font-bold text-indigo-300 uppercase mb-1">Referenced Sources</p>
+                                    <ul className="space-y-1">
+                                        {msg.sources.map((s, i) => (
+                                            <li key={i}>
+                                                <a href={s.uri} target="_blank" rel="noopener noreferrer" className="text-[10px] text-indigo-400 hover:underline flex items-center gap-1">
+                                                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V5h14v14zM7 10h2v7H7zm4-3h2v10h-2zm4 6h2v4h-2z"/></svg>
+                                                    {s.title}
+                                                </a>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                ))}
+                <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input Area */}
+            <div className="p-4 bg-gray-900 border-t border-indigo-900">
+                <div className="relative">
+                    <input
+                        type="text"
+                        value={input}
+                        onChange={(e) => setInput(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+                        placeholder="Ask about symptoms, drug interactions, or research..."
+                        className="w-full bg-gray-800 border border-indigo-500/30 rounded-full py-3 px-5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent pr-12 shadow-inner"
+                        disabled={isLoading}
+                    />
+                    <button 
+                        onClick={handleSend}
+                        disabled={isLoading || !input.trim()}
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-indigo-600 hover:bg-indigo-500 text-white p-2 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        {isLoading ? (
+                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        ) : (
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+                        )}
+                    </button>
+                </div>
+                <p className="text-[10px] text-center text-gray-500 mt-2">
+                    AI-generated content. For research only. Not a substitute for professional medical advice.
+                </p>
+            </div>
+        </div>
+    );
+};
+
+export default MedicalChat;
