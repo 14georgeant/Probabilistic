@@ -16,6 +16,7 @@ import HealthChat from './components/HealthChat';
 import TradaysCalendar from './components/TradaysCalendar';
 import CodeExportModal from './components/CodeExportModal';
 import NotebookSection from './components/NotebookSection';
+import DNAStartup from './components/DNAStartup';
 
 // Robust UUID generator that works in non-secure contexts (HTTP) where crypto.randomUUID might be undefined
 const generateUUID = () => {
@@ -33,6 +34,8 @@ const generateUUID = () => {
 };
 
 const App: React.FC = () => {
+    const [showSplash, setShowSplash] = useState(true);
+
     // App Mode: 'general', 'financial', 'health', 'medical', 'programmer'
     // Load from localStorage if available
     const [appMode, setAppMode] = useState<'general' | 'financial' | 'health' | 'medical' | 'programmer'>(() => {
@@ -511,6 +514,11 @@ const App: React.FC = () => {
             </button>
         );
     };
+
+    // RENDER SPLASH SCREEN
+    if (showSplash) {
+        return <DNAStartup onComplete={() => setShowSplash(false)} />;
+    }
 
     if (showTermsModal) {
         return (
