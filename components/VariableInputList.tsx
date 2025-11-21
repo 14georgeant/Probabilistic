@@ -1,16 +1,35 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { Variable, VariableState, Outcome } from '../types';
 import { StateItem } from './StateItem';
 
 interface VariableInputListProps {
     variables: Variable[];
     setVariables: React.Dispatch<React.SetStateAction<Variable[]>>;
+    onClearAll: () => void;
 }
 
-const VariableInputList: React.FC<VariableInputListProps> = ({ variables, setVariables }) => {
+// Icons
+const DragHandleIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className={className}>
+        <path fillRule="evenodd" d="M3 6a3 3 0 0 1 3-3h2.25a3 3 0 0 1 3 3v2.25a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3V6Zm9.75 0a3 3 0 0 1 3-3H18a3 3 0 0 1 3 3v2.25a3 3 0 0 1-3 3h-2.25a3 3 0 0 1-3-3V6ZM3 15.75a3 3 0 0 1 3-3h2.25a3 3 0 0 1 3 3V18a3 3 0 0 1-3 3H6a3 3 0 0 1-3-3v-2.25Zm9.75 0a3 3 0 0 1 3-3H18a3 3 0 0 1 3 3V18a3 3 0 0 1-3 3h-2.25a3 3 0 0 1-3-3v-2.25Z" clipRule="evenodd" />
+    </svg>
+);
+const TrashIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
+);
+const PlusIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
+    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+);
+
+const VariableInputList: React.FC<VariableInputListProps> = ({ variables, setVariables, onClearAll }) => {
+    
+    // --- Drag & Drop State ---
+    const [draggedVarIndex, setDraggedVarIndex] = useState<number | null>(null);
+    const [draggedState, setDraggedState] = useState<{ vIndex: number; sIndex: number } | null>(null);
+    const [isVarHandleHovered, setIsVarHandleHovered] = useState<number | null>(null);
 
     // --- CRUD Operations ---
-
     const addVariable = () => {
         const newVariable: Variable = {
             id: crypto.randomUUID(),
@@ -118,75 +137,135 @@ const VariableInputList: React.FC<VariableInputListProps> = ({ variables, setVar
         ));
     };
 
-    // --- Reordering Logic ---
+    // --- Drag Handlers (Variable) ---
 
-    const moveVariable = (index: number, direction: 'up' | 'down') => {
-        if ((direction === 'up' && index === 0) || (direction === 'down' && index === variables.length - 1)) return;
+    const handleVarDragStart = (e: React.DragEvent, index: number) => {
+        // Only allow drag if handle was hovered (handled via draggable attribute, but good as safeguard)
+        setDraggedVarIndex(index);
+        e.dataTransfer.effectAllowed = "move";
+    };
+
+    const handleVarDragEnter = (e: React.DragEvent, index: number) => {
+        e.preventDefault();
+        if (draggedVarIndex === null || draggedVarIndex === index) return;
+
+        const newVars = [...variables];
+        const draggedItem = newVars[draggedVarIndex];
+        newVars.splice(draggedVarIndex, 1);
+        newVars.splice(index, 0, draggedItem);
+
+        setVariables(newVars);
+        setDraggedVarIndex(index);
+    };
+
+    const handleVarDragEnd = () => {
+        setDraggedVarIndex(null);
+    };
+
+    const handleVarDragOver = (e: React.DragEvent) => {
+        e.preventDefault(); // Necessary to allow dropping
+    };
+
+    // --- Drag Handlers (State) ---
+
+    const handleStateDragStart = (e: React.DragEvent, vIndex: number, sIndex: number) => {
+        e.stopPropagation();
+        setDraggedState({ vIndex, sIndex });
+        e.dataTransfer.effectAllowed = "move";
+    };
+
+    const handleStateDragEnter = (e: React.DragEvent, vIndex: number, sIndex: number) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (!draggedState || draggedState.vIndex !== vIndex || draggedState.sIndex === sIndex) return;
+
+        const newVars = [...variables];
+        const variable = newVars[vIndex];
+        const newStates = [...variable.states];
         
-        setVariables(prev => {
-            const newVars = [...prev];
-            const targetIndex = direction === 'up' ? index - 1 : index + 1;
-            [newVars[index], newVars[targetIndex]] = [newVars[targetIndex], newVars[index]];
-            return newVars;
-        });
+        const draggedItem = newStates[draggedState.sIndex];
+        newStates.splice(draggedState.sIndex, 1);
+        newStates.splice(sIndex, 0, draggedItem);
+        
+        newVars[vIndex] = { ...variable, states: newStates };
+        setVariables(newVars);
+        setDraggedState({ vIndex, sIndex });
     };
 
-    const moveState = (variableId: string, stateIndex: number, direction: 'up' | 'down') => {
-        setVariables(prev => prev.map(v => {
-            if (v.id !== variableId) return v;
-            if ((direction === 'up' && stateIndex === 0) || (direction === 'down' && stateIndex === v.states.length - 1)) return v;
-
-            const newStates = [...v.states];
-            const targetIndex = direction === 'up' ? stateIndex - 1 : stateIndex + 1;
-            [newStates[stateIndex], newStates[targetIndex]] = [newStates[targetIndex], newStates[stateIndex]];
-            
-            return { ...v, states: newStates };
-        }));
+    const handleStateDragEnd = (e: React.DragEvent) => {
+        e.stopPropagation();
+        setDraggedState(null);
     };
-
-    // --- Icons ---
-
-    const ChevronUpIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 15.75l7.5-7.5 7.5 7.5" /></svg>
-    );
-    const ChevronDownIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" /></svg>
-    );
-    const TrashIcon = () => (
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5"><path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" /></svg>
-    );
-    const PlusIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
-    );
 
     return (
         <div className="space-y-8">
+            {/* Toolbar Header */}
+            {variables.length > 0 && (
+                <div className="flex justify-between items-center border-b border-gray-700 pb-2 mb-4">
+                    <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                        {variables.length} Variable{variables.length !== 1 ? 's' : ''} Defined
+                    </span>
+                    <button 
+                        onClick={onClearAll}
+                        className="text-xs font-bold text-red-400 hover:text-red-300 hover:bg-red-900/20 px-3 py-1 rounded transition-colors flex items-center gap-1"
+                    >
+                        <TrashIcon className="w-4 h-4" /> Clear Workspace
+                    </button>
+                </div>
+            )}
+
+            {/* Empty State */}
+            {variables.length === 0 && (
+                <div className="text-center py-12 border-2 border-dashed border-gray-700 rounded-xl bg-gray-800/30 flex flex-col items-center animate-fade-in">
+                     <div className="p-4 bg-gray-800 rounded-full mb-4 shadow-lg">
+                        <PlusIcon className="w-8 h-8 text-cyan-400" />
+                     </div>
+                     <h3 className="text-lg font-bold text-gray-200 mb-2">Start Your Analysis</h3>
+                     <p className="text-sm text-gray-400 mb-6 max-w-xs">
+                        Define your first variable manually or use the AI assistant to generate one from a link.
+                     </p>
+                     <button 
+                        onClick={addVariable} 
+                        className="bg-cyan-600 hover:bg-cyan-500 text-white font-bold py-3 px-8 rounded-full shadow-lg hover:scale-105 transition-transform flex items-center gap-2"
+                    >
+                        <PlusIcon className="w-5 h-5" /> Create First Variable
+                    </button>
+                </div>
+            )}
+
+            {/* Variable List */}
             {variables.map((variable, vIndex) => {
                 const isVarNameEmpty = !variable.name.trim();
-                
+                const isDraggable = isVarHandleHovered === vIndex;
+                const isBeingDragged = draggedVarIndex === vIndex;
+
                 return (
-                <div key={variable.id} className={`bg-gray-800 rounded-xl border shadow-lg overflow-hidden group/var transition-all hover:border-gray-600 ${isVarNameEmpty ? 'border-red-500/40 ring-1 ring-red-500/20' : 'border-gray-700'}`}>
+                <div 
+                    key={variable.id} 
+                    draggable={isDraggable}
+                    onDragStart={(e) => handleVarDragStart(e, vIndex)}
+                    onDragEnter={(e) => handleVarDragEnter(e, vIndex)}
+                    onDragEnd={handleVarDragEnd}
+                    onDragOver={handleVarDragOver}
+                    className={`bg-gray-800 rounded-xl border shadow-lg overflow-hidden group/var transition-all duration-200 ${
+                        isVarNameEmpty ? 'border-red-500/40 ring-1 ring-red-500/20' : 'border-gray-700 hover:border-gray-600'
+                    } ${isDraggable ? 'cursor-grab active:cursor-grabbing' : ''} ${
+                        isBeingDragged 
+                        ? 'opacity-40 scale-[0.98] border-cyan-500/50 ring-2 ring-cyan-500/20' 
+                        : 'opacity-100 scale-100'
+                    }`}
+                >
                     
                     {/* Variable Header */}
                     <div className="bg-gray-900/80 p-4 border-b border-gray-700 flex items-center gap-4">
-                        {/* Reorder Controls */}
-                        <div className="flex flex-col gap-1">
-                           <button 
-                                onClick={() => moveVariable(vIndex, 'up')} 
-                                disabled={vIndex === 0} 
-                                className="text-gray-600 hover:text-cyan-400 disabled:opacity-20 transition-colors p-0.5 rounded hover:bg-gray-800"
-                                title="Move Variable Up"
-                            >
-                                <ChevronUpIcon className="w-4 h-4" />
-                           </button>
-                           <button 
-                                onClick={() => moveVariable(vIndex, 'down')} 
-                                disabled={vIndex === variables.length - 1} 
-                                className="text-gray-600 hover:text-cyan-400 disabled:opacity-20 transition-colors p-0.5 rounded hover:bg-gray-800"
-                                title="Move Variable Down"
-                            >
-                                <ChevronDownIcon className="w-4 h-4" />
-                           </button>
+                        {/* Drag Handle */}
+                        <div 
+                            className="flex flex-col gap-1 text-gray-600 hover:text-cyan-400 p-2 hover:bg-gray-800 rounded cursor-grab active:cursor-grabbing transition-colors"
+                            onMouseEnter={() => setIsVarHandleHovered(vIndex)}
+                            onMouseLeave={() => setIsVarHandleHovered(null)}
+                            title="Drag to reorder variable"
+                        >
+                           <DragHandleIcon />
                         </div>
 
                         {/* Name Input */}
@@ -230,38 +309,44 @@ const VariableInputList: React.FC<VariableInputListProps> = ({ variables, setVar
                                 variableId={variable.id}
                                 state={state}
                                 index={sIndex}
-                                isFirst={sIndex === 0}
-                                isLast={sIndex === variable.states.length - 1}
                                 onUpdate={(_id, data) => updateState(variable.id, _id, data)}
                                 onRemove={(_id) => removeState(variable.id, _id)}
-                                onMove={(idx, dir) => moveState(variable.id, idx, dir)}
                                 onAddOutcome={(sId) => addOutcome(variable.id, sId)}
                                 onRemoveOutcome={(sId, oId) => removeOutcome(variable.id, sId, oId)}
                                 onUpdateOutcome={(sId, oId, data) => updateOutcome(variable.id, sId, oId, data)}
+                                
+                                // Drag Props
+                                draggable={true}
+                                onDragStart={(e) => handleStateDragStart(e, vIndex, sIndex)}
+                                onDragEnter={(e) => handleStateDragEnter(e, vIndex, sIndex)}
+                                onDragEnd={handleStateDragEnd}
+                                onDragOver={handleVarDragOver} // allow dropping by preventing default
                              />
                          ))}
                          
                          <button 
                             onClick={() => addState(variable.id)} 
-                            className="w-full py-3 border-2 border-dashed border-gray-700 rounded-lg text-sm font-medium text-gray-400 hover:text-white hover:border-gray-500 hover:bg-gray-700/30 transition-all flex justify-center items-center gap-2"
+                            className="w-full py-3 border-2 border-dashed border-gray-700 rounded-lg text-sm font-medium text-gray-400 hover:text-white hover:border-gray-500 hover:bg-gray-700/30 transition-all flex justify-center items-center gap-2 group"
                         >
-                             <PlusIcon /> Add Another State
+                             <PlusIcon className="group-hover:scale-110 transition-transform" /> Add Another State
                          </button>
                     </div>
                 </div>
                 );
             })}
             
-            {/* Add Variable Button */}
-            <button 
-                onClick={addVariable} 
-                className="w-full py-8 border-2 border-dashed border-gray-700 rounded-xl text-gray-400 font-bold hover:text-white hover:border-cyan-500/50 hover:bg-gray-800 transition-all flex justify-center items-center gap-3 group"
-            >
-                <div className="bg-gray-800 group-hover:bg-cyan-600 text-white rounded-full p-3 transition-colors shadow-lg border border-gray-600 group-hover:border-cyan-400">
-                   <PlusIcon className="w-6 h-6" />
-                </div>
-                <span className="text-lg tracking-wide">Create New Strategic Variable</span>
-            </button>
+            {/* Add Variable Button (Only show if variables exist, otherwise empty state handles it) */}
+            {variables.length > 0 && (
+                <button 
+                    onClick={addVariable} 
+                    className="w-full py-6 border-2 border-dashed border-gray-700 rounded-xl text-gray-400 font-bold hover:text-white hover:border-cyan-500/50 hover:bg-gray-800 transition-all flex justify-center items-center gap-3 group"
+                >
+                    <div className="bg-gray-800 group-hover:bg-cyan-600 text-white rounded-full p-2 transition-colors shadow-lg border border-gray-600 group-hover:border-cyan-400">
+                    <PlusIcon className="w-6 h-6" />
+                    </div>
+                    <span className="text-lg tracking-wide">Create New Strategic Variable</span>
+                </button>
+            )}
         </div>
     );
 }

@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import { Variable, AnalysisResult } from './types';
 import Header from './components/Header';
@@ -84,6 +85,9 @@ const App: React.FC = () => {
     // Terms and Privacy State
     const [hasAcceptedTerms, setHasAcceptedTerms] = useState<boolean>(false);
     const [showTermsModal, setShowTermsModal] = useState<boolean>(true);
+
+    // Reset Key to force remounting of persistent components (Chat, Terminal)
+    const [resetKey, setResetKey] = useState<number>(0);
 
     // Persistence Effects
     useEffect(() => {
@@ -226,11 +230,22 @@ const App: React.FC = () => {
         setGeminiInsights('');
     };
 
-    const handleReset = useCallback(() => {
-        if (window.confirm("Start a new analysis? This will clear all current variables and results.")) {
+    // Clears all variables for a fresh start
+    const handleClearAll = useCallback(() => {
+        if (window.confirm("Are you sure you want to remove all variables? This cannot be undone.")) {
+            setVariables([]);
             setAnalysisResult(null);
             setGeminiInsights('');
             setError('');
+        }
+    }, []);
+
+    const handleReset = useCallback(() => {
+        if (window.confirm("Start a new analysis with default template? This will overwrite your current work.")) {
+            setAnalysisResult(null);
+            setGeminiInsights('');
+            setError('');
+            setResetKey(prev => prev + 1); // Force remount of Chat/Terminal components
             
             // Automatically set the correct target outcome name based on the active mode
             let defaultTarget = 'Success';
@@ -264,6 +279,8 @@ const App: React.FC = () => {
             setActiveTab('manual');
             setIsCodeModalOpen(false);
             setIsTerminalOpen(false);
+            // Keep Medical Chat open if we are in medical mode, but reset its content via key
+            // setIsMedicalChatOpen(appMode === 'medical'); 
         }
     }, [appMode]);
 
@@ -526,7 +543,11 @@ const App: React.FC = () => {
 
                         <div className="flex-grow">
                             {activeTab === 'manual' ? (
-                                <VariableInputList variables={variables} setVariables={setVariables} />
+                                <VariableInputList 
+                                    variables={variables} 
+                                    setVariables={setVariables} 
+                                    onClearAll={handleClearAll}
+                                />
                             ) : activeTab === 'ai' ? (
                                 <LinkAnalyzer 
                                     onVariableGenerated={handleAddVariable} 
@@ -582,6 +603,7 @@ const App: React.FC = () => {
             </main>
             
             <GeminiTerminal 
+                key={`terminal-${resetKey}`}
                 isOpen={isTerminalOpen} 
                 onClose={() => setIsTerminalOpen(false)} 
                 onExecute={handleBatchVariables}
@@ -589,6 +611,7 @@ const App: React.FC = () => {
             />
 
             <MedicalChat 
+                key={`med-chat-${resetKey}`}
                 isOpen={isMedicalChatOpen}
                 onClose={() => setIsMedicalChatOpen(false)}
             />
@@ -606,7 +629,7 @@ const App: React.FC = () => {
                         disabled={isLoading}
                         className="w-full md:w-auto px-8 py-3 rounded-lg font-bold text-gray-400 border-2 border-gray-700 hover:border-gray-500 hover:text-white hover:bg-gray-800 transition-all"
                     >
-                        Reset
+                        Reset to Template
                     </button>
                     <button
                         onClick={handleAnalyze}
