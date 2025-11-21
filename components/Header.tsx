@@ -43,18 +43,19 @@ const Header: React.FC<HeaderProps> = ({ onOpenTerms, onOpenTerminal }) => {
     };
 
     return (
-        <header className="bg-gray-800 shadow-lg border-b border-gray-700">
+        <header className="bg-gray-800 shadow-lg border-b border-gray-700 relative z-30">
             <div className="container mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="flex items-center justify-between h-20">
                     <div className="flex items-center group select-none">
-                         <div className="relative">
-                            <Logo className="h-8 w-8 text-cyan-400 mr-3" />
+                         <div className="relative shrink-0">
+                            <Logo className="h-9 w-9 text-cyan-400 mr-3" />
                          </div>
                         <div>
                             <h1 className="text-2xl font-bold text-white tracking-tight hidden md:block">Probabilistic Outcome Analyzer</h1>
-                            <h1 className="text-xs font-bold text-white tracking-tight md:hidden flex flex-col leading-tight">
-                                <span className="text-cyan-400 uppercase tracking-wider">Probabilistic</span>
-                                <span className="text-sm">Outcome Analyzer</span>
+                            {/* Minimalistic Mobile Header */}
+                            <h1 className="font-bold text-white tracking-tight md:hidden flex flex-col leading-none">
+                                <span className="text-[10px] text-cyan-400 uppercase tracking-[0.15em] mb-0.5">Probabilistic</span>
+                                <span className="text-lg">Outcome Analyzer</span>
                             </h1>
                         </div>
                     </div>
@@ -63,34 +64,31 @@ const Header: React.FC<HeaderProps> = ({ onOpenTerms, onOpenTerminal }) => {
                         {onOpenTerminal && (
                             <button 
                                 onClick={onOpenTerminal}
-                                className="text-sm font-mono bg-gray-900 hover:bg-black text-green-400 border border-green-500/50 px-3 py-1.5 rounded transition-colors hidden sm:block"
+                                className="text-xs sm:text-sm font-mono bg-gray-900 hover:bg-black text-green-400 border border-green-500/50 px-3 py-1.5 rounded transition-colors hidden sm:block"
                             >
-                                &gt;_ Gemini CLI
+                                &gt;_ CLI
                             </button>
                         )}
 
                         {installPrompt && (
                             <button 
                                 onClick={handleInstallClick}
-                                className="bg-cyan-600 hover:bg-cyan-500 text-white text-sm font-bold py-2 px-4 rounded-full transition-colors shadow-lg flex items-center"
+                                className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold py-1.5 px-3 rounded-full transition-colors shadow-lg flex items-center"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 mr-2">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3 h-3 mr-1">
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M12 9.75V1.5m0 0L8.25 5.25M12 1.5 15.75 5.25" />
                                 </svg>
-                                Install App
+                                Install
                             </button>
                         )}
                         {onOpenTerms && (
                             <button 
                                 onClick={onOpenTerms}
-                                className="text-sm text-gray-400 hover:text-cyan-400 transition-colors hidden sm:block"
+                                className="text-xs sm:text-sm text-gray-400 hover:text-cyan-400 transition-colors hidden sm:block"
                             >
-                                Privacy & Terms
+                                Terms
                             </button>
                         )}
-                        <a href="mailto:gjoekabz98@gmail.com" className="text-sm text-gray-400 hover:text-cyan-400 transition-colors hidden sm:block">
-                            Contact Support
-                        </a>
                     </div>
                 </div>
             </div>
