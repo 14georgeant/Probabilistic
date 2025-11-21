@@ -8,13 +8,18 @@ export default defineConfig(({ mode }) => {
   // Set the third parameter to '' to load all env regardless of the `VITE_` prefix.
   const env = loadEnv(mode, process.cwd(), '');
   
+  // Robustly capture the API key from various possible environment variable names
+  const apiKey = env.API_KEY || env.VITE_API_KEY || env.GOOGLE_API_KEY || env.REACT_APP_API_KEY;
+
   return {
     plugins: [react()],
     define: {
-      // This maps your existing 'process.env.API_KEY' code to the actual environment variable provided by Vercel/Netlify
-      'process.env.API_KEY': JSON.stringify(env.API_KEY),
-      // Polyfill process.env to avoid "process is not defined" errors in browser environments that access process directly
-      'process.env': {},
+      // Define process.env as a single object containing the key.
+      // This prevents issues where 'process.env' is undefined or empty in browser contexts.
+      'process.env': JSON.stringify({
+        API_KEY: apiKey,
+        NODE_ENV: mode,
+      }),
     },
     build: {
       chunkSizeWarningLimit: 1600

@@ -1,21 +1,24 @@
-
 import { GoogleGenAI, Type, Chat } from "@google/genai";
 import { Variable, AnalysisResult, Outcome, VariableState } from '../types';
 import { generateUUID } from '../utils';
 
-// Explicitly declare process for TypeScript since we are in a browser context
-// where Vite replaces process.env.API_KEY at build time.
+// Explicitly declare process for TypeScript
 declare const process: {
     env: {
         API_KEY: string | undefined;
+        [key: string]: string | undefined;
     }
 };
 
 const getAiClient = () => {
-    if (!process.env.API_KEY) {
-        throw new Error("API_KEY environment variable is not set. Please configure it in your deployment settings.");
+    // Access the key directly. Vite replaces 'process.env' with the object defined in config.
+    const apiKey = process.env.API_KEY;
+    
+    if (!apiKey) {
+        console.error("Gemini Service Error: API_KEY is missing from process.env. Current env:", process.env);
+        throw new Error("API_KEY environment variable is not set. Please configure it in your deployment settings or .env file.");
     }
-    return new GoogleGenAI({ apiKey: process.env.API_KEY });
+    return new GoogleGenAI({ apiKey });
 };
 
 const model = "gemini-2.5-flash";
