@@ -1,5 +1,6 @@
 import React from 'react';
 import { Variable, VariableState, Outcome } from '../types';
+import { StateItem } from './StateItem';
 
 interface VariableInputListProps {
     variables: Variable[];
@@ -157,12 +158,6 @@ const VariableInputList: React.FC<VariableInputListProps> = ({ variables, setVar
     const PlusIcon = ({ className = "w-5 h-5" }: { className?: string }) => (
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className={className}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
     );
-    const XIcon = () => (
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
-    );
-    const WarningIcon = () => (
-        <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
-    );
 
     return (
         <div className="space-y-8">
@@ -229,115 +224,22 @@ const VariableInputList: React.FC<VariableInputListProps> = ({ variables, setVar
 
                     {/* Variable Content (States) */}
                     <div className="p-4 bg-gray-800/50 space-y-4">
-                         {variable.states.map((state, sIndex) => {
-                             const isStateNameEmpty = !state.name.trim();
-                             return (
-                             <div key={state.id} className={`bg-gray-700/30 rounded-lg border overflow-hidden transition-all hover:border-gray-500/50 ${isStateNameEmpty ? 'border-red-500/30' : 'border-gray-600/50'}`}>
-                                 
-                                 {/* State Header */}
-                                 <div className="flex items-center gap-3 p-3 bg-gray-700/50 border-b border-gray-600/50">
-                                     <div className="flex items-center gap-0.5 bg-gray-800 rounded p-0.5 border border-gray-700">
-                                         <button onClick={() => moveState(variable.id, sIndex, 'up')} disabled={sIndex === 0} className="p-1 text-gray-400 hover:text-white disabled:opacity-20"><ChevronUpIcon className="w-3 h-3"/></button>
-                                         <button onClick={() => moveState(variable.id, sIndex, 'down')} disabled={sIndex === variable.states.length - 1} className="p-1 text-gray-400 hover:text-white disabled:opacity-20"><ChevronDownIcon className="w-3 h-3"/></button>
-                                     </div>
-                                     
-                                     <span className="text-[10px] font-mono font-bold text-cyan-500/70 bg-cyan-900/20 px-2 py-1 rounded select-none uppercase tracking-wider">State {String.fromCharCode(65 + sIndex)}</span>
-                                     
-                                     <div className="flex-grow relative">
-                                         <input 
-                                             value={state.name} 
-                                             onChange={(e) => updateState(variable.id, state.id, { name: e.target.value })}
-                                             className={`w-full bg-transparent font-medium text-gray-200 focus:outline-none border-b-2 transition-all placeholder-gray-500 ${
-                                                 isStateNameEmpty
-                                                 ? 'border-red-500/50 focus:border-red-500 placeholder-red-400/30'
-                                                 : 'border-transparent focus:border-cyan-500/50'
-                                             }`}
-                                             placeholder="State Name (e.g., High Growth)"
-                                         />
-                                          {isStateNameEmpty && (
-                                             <div className="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none">
-                                                 <WarningIcon />
-                                             </div>
-                                         )}
-                                     </div>
-                                     
-                                     <button onClick={() => removeState(variable.id, state.id)} className="text-xs text-gray-500 hover:text-red-400 hover:bg-gray-700 px-2 py-1 rounded transition-colors">
-                                         Remove
-                                     </button>
-                                 </div>
-                                 
-                                 {/* Outcomes Area */}
-                                 <div className="p-3 bg-black/20 rounded-b-lg">
-                                     {/* Outcomes Header - improved */}
-                                     <div className="grid grid-cols-12 gap-4 px-2 mb-2 text-[10px] uppercase font-bold text-gray-500 tracking-wider">
-                                         <div className="col-span-7">Outcome Scenario</div>
-                                         <div className="col-span-5 text-right pr-8">Probability</div>
-                                     </div>
-
-                                     <div className="space-y-2">
-                                         {state.outcomes.map((outcome) => {
-                                             const isOutcomeNameEmpty = !outcome.name.trim();
-                                             return (
-                                             <div key={outcome.id} className="group/outcome relative flex items-center bg-gray-800/40 rounded border border-transparent hover:border-gray-600 transition-all overflow-hidden">
-                                                 {/* Progress Bar BG */}
-                                                 <div 
-                                                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 transition-all duration-500 pointer-events-none" 
-                                                    style={{ width: `${outcome.probability}%` }}
-                                                 />
-                                                 
-                                                 <div className="relative z-10 grid grid-cols-12 gap-4 w-full p-2 items-center">
-                                                     {/* Name Input */}
-                                                     <div className="col-span-7 flex items-center gap-2">
-                                                         <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isOutcomeNameEmpty ? 'bg-red-500' : 'bg-cyan-500'}`}></div>
-                                                         <input 
-                                                             value={outcome.name}
-                                                             onChange={(e) => updateOutcome(variable.id, state.id, outcome.id, { name: e.target.value })}
-                                                             className={`w-full bg-transparent text-sm focus:outline-none ${isOutcomeNameEmpty ? 'placeholder-red-400/50 text-red-300' : 'placeholder-gray-600 text-gray-200'}`}
-                                                             placeholder="Outcome Name (e.g. Success)"
-                                                         />
-                                                     </div>
-
-                                                     {/* Probability Controls */}
-                                                     <div className="col-span-5 flex items-center justify-end gap-3">
-                                                         <input 
-                                                             type="range" min="0" max="100"
-                                                             value={outcome.probability}
-                                                             onChange={(e) => updateOutcome(variable.id, state.id, outcome.id, { probability: parseInt(e.target.value) })}
-                                                             className="w-20 h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-500 hidden sm:block"
-                                                         />
-                                                         <div className="relative w-10">
-                                                             <input 
-                                                                 type="number" min="0" max="100"
-                                                                 value={outcome.probability}
-                                                                 onChange={(e) => updateOutcome(variable.id, state.id, outcome.id, { probability: parseInt(e.target.value) })}
-                                                                 className="w-full bg-transparent text-right font-mono text-sm text-cyan-400 focus:outline-none"
-                                                             />
-                                                             <span className="absolute top-0 right-[-8px] text-[10px] text-gray-600 pointer-events-none">%</span>
-                                                         </div>
-                                                         
-                                                         <button 
-                                                            onClick={() => removeOutcome(variable.id, state.id, outcome.id)} 
-                                                            className="text-gray-600 hover:text-red-400 opacity-0 group-hover/outcome:opacity-100 transition-opacity p-1"
-                                                         >
-                                                             <XIcon />
-                                                         </button>
-                                                     </div>
-                                                 </div>
-                                             </div>
-                                             );
-                                         })}
-                                     </div>
-                                     
-                                     <button 
-                                        onClick={() => addOutcome(variable.id, state.id)} 
-                                        className="mt-3 w-full py-1.5 text-xs font-bold text-gray-500 hover:text-cyan-400 border border-dashed border-gray-700 hover:border-cyan-500/30 rounded hover:bg-cyan-500/5 transition-all flex items-center justify-center gap-1"
-                                    >
-                                         <PlusIcon className="w-3 h-3" /> Add Outcome Scenario
-                                     </button>
-                                 </div>
-                             </div>
-                             );
-                         })}
+                         {variable.states.map((state, sIndex) => (
+                             <StateItem
+                                key={state.id}
+                                variableId={variable.id}
+                                state={state}
+                                index={sIndex}
+                                isFirst={sIndex === 0}
+                                isLast={sIndex === variable.states.length - 1}
+                                onUpdate={(_id, data) => updateState(variable.id, _id, data)}
+                                onRemove={(_id) => removeState(variable.id, _id)}
+                                onMove={(idx, dir) => moveState(variable.id, idx, dir)}
+                                onAddOutcome={(sId) => addOutcome(variable.id, sId)}
+                                onRemoveOutcome={(sId, oId) => removeOutcome(variable.id, sId, oId)}
+                                onUpdateOutcome={(sId, oId, data) => updateOutcome(variable.id, sId, oId, data)}
+                             />
+                         ))}
                          
                          <button 
                             onClick={() => addState(variable.id)} 
