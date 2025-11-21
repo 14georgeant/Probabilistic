@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type, Chat } from "@google/genai";
 import { Variable, AnalysisResult, Outcome, VariableState } from '../types';
 
@@ -17,6 +18,51 @@ const getAiClient = () => {
 };
 
 const model = "gemini-2.5-flash";
+
+// Helper to format errors into user-friendly messages
+const formatGenAIError = (error: unknown): string => {
+    if (error instanceof Error) {
+        const msg = error.message;
+        
+        // Security Risk Pass-through
+        if (msg.startsWith('SECURITY_RISK_DETECTED')) {
+            return msg;
+        }
+
+        // API Key / Auth
+        if (msg.includes('API key') || msg.includes('API_KEY') || msg.includes('401') || msg.includes('403')) {
+             return "Authentication Error: The API Key is missing, invalid, or not configured correctly. Please check your environment settings.";
+        }
+        
+        // Rate Limiting
+        if (msg.includes('429') || msg.includes('Resource has been exhausted')) {
+            return "Traffic Limit Exceeded: You are sending requests too quickly. Please wait a moment and try again.";
+        }
+        
+        // Server Errors
+        if (msg.includes('500') || msg.includes('503') || msg.includes('Internal') || msg.includes('Overloaded')) {
+             return "Google AI Service Error: The model is temporarily overloaded or unavailable. Please try again shortly.";
+        }
+        
+        // Safety Filters
+        if (msg.includes('SAFETY') || msg.includes('blocked') || msg.includes('Harmful') || msg.includes('candidate')) {
+             return "Content Filter: The AI flagged your input as potentially unsafe or harmful. Please adjust your wording and try again.";
+        }
+        
+        // Network
+        if (msg.includes('fetch failed') || msg.includes('NetworkError') || msg.includes('Failed to fetch')) {
+            return "Connection Error: Unable to reach the AI service. Please check your internet connection.";
+        }
+        
+        // JSON Parsing (AI returned bad format)
+        if (msg.includes('JSON') || msg.includes('Unexpected token') || msg.includes('parse')) {
+             return "Data Processing Error: The AI returned an invalid format. Please try the request again.";
+        }
+        
+        return `System Error: ${msg}`;
+    }
+    return "An unexpected system error occurred. Please try again.";
+};
 
 const checkForMaliciousIntent = async (text: string): Promise<boolean> => {
     const prompt = `You are a security analysis AI. Your sole purpose is to determine if the following text contains any malicious intent.
@@ -60,7 +106,7 @@ ${text}
 export const generateAnalysisSummary = async (
     variables: Variable[], 
     result: AnalysisResult, 
-    mode: 'general' | 'financial' | 'health' | 'medical' = 'general'
+    mode: 'general' | 'financial' | 'health' | 'medical' | 'programmer' = 'general'
 ): Promise<string> => {
 
   const variablesDescription = variables.map(v => 
@@ -138,6 +184,26 @@ export const generateAnalysisSummary = async (
       #### 4. Recommended Clinical Investigation
       Suggest further variables to investigate or tests to consider (e.g., "Monitor Blood Pressure", "Check family history").
       `;
+  } else if (mode === 'programmer') {
+      systemPrompt = `You are a Principal Software Engineer and Tech Lead. Your goal is to analyze the user's technical strategy, code architecture, or project roadmap model and provide pragmatic, scalable advice.
+
+      **Role:** Staff Engineer / Tech Lead.
+      **Tone:** Technical, Constructive, Pragmatic, "Hacker" spirit.
+
+      **Structure your advice as follows:**
+      #### 1. Architecture Review
+      Summarize the viability of the technical goal (e.g., "Scalability", "Ship Date") based on the model.
+
+      #### 2. The '10x' Factor
+      Identify the technology or practice that offers the highest leverage for success (e.g., "Caching Strategy", "CI/CD Pipeline").
+
+      #### 3. Technical Debt Risk
+      Identify the "weakest link" in the stack or process. Explain the potential downstream effects (bugs, latency, developer burnout).
+
+      #### 4. Engineering Recommendations
+      - **Optimization:** Suggest a specific refactor, tool, or pattern to fix the bottleneck.
+      - **New Metric:** Suggest a variable to track (e.g., "Cyclomatic Complexity", "Test Coverage", "Mean Time to Recovery").
+      `;
   } else {
       systemPrompt = `You are a senior product analyst and technical advisor. Your goal is to provide unbiased, constructive, and actionable advice to help a user improve their strategy.
 
@@ -177,7 +243,7 @@ ${resultDescription}
     const analysisText = response.text ?? '';
     
     if (!analysisText) {
-        return "Unable to generate analysis summary at this time.";
+        throw new Error("The AI service returned an empty response.");
     }
 
     const isMalicious = await checkForMaliciousIntent(analysisText);
@@ -188,10 +254,7 @@ ${resultDescription}
     return analysisText;
   } catch (error) {
     console.error("Error generating analysis summary:", error);
-    if (error instanceof Error && error.message.startsWith('SECURITY_RISK_DETECTED')) {
-        throw error;
-    }
-    return "Error generating AI insights. Please check the console for more details.";
+    throw new Error(formatGenAIError(error));
   }
 };
 
@@ -229,7 +292,7 @@ const variableSchema = {
 
 export const analyzeLinkForVariables = async (
     url: string, 
-    mode: 'general' | 'financial' | 'health' | 'medical' = 'general'
+    mode: 'general' | 'financial' | 'health' | 'medical' | 'programmer' = 'general'
 ): Promise<{ variable: Variable; sources: { title: string; uri: string }[] }> => {
     
     let instructions = "";
@@ -239,7 +302,7 @@ export const analyzeLinkForVariables = async (
         Analyze the URL for financial indicators, investment opportunities, or economic news.
         - If it's a **Company/Stock**: Variable name should be related to "Fundamental Strength" or "Market Sentiment". States: "Buy Signal", "Hold", "Sell".
         - If it's a **Crypto/Asset**: Variable name: "Volatility" or "Adoption Rate". States: "High Growth", "Correction", "Stagnation".
-        - If it's **News**: Variable name: "Economic Impact". States: "Positive Shock", "Negative Shock", "Neutral".
+        - If it's a **News**: Variable name: "Economic Impact". States: "Positive Shock", "Negative Shock", "Neutral".
         - If it's **General Financial Info**: Analyze the core financial concept. Variable name: "Key Financial Driver".
         - **CATCH-ALL**: If the link is valid but doesn't fit above categories, analyze it as a general financial factor or risk variable.
         - Estimate probabilities based on the sentiment of the content.
@@ -263,6 +326,15 @@ export const analyzeLinkForVariables = async (
         - If it's **General Medical Info**: Extract the most relevant prognostic factor or risk variable.
         - **CATCH-ALL**: If the link is valid medical info, analyze the most relevant clinical factor.
         - PRIORITIZE ACCURACY based on the text.
+        `;
+    } else if (mode === 'programmer') {
+        instructions = `
+        This is for a **Software Engineering & Dev Strategy Model**.
+        Analyze the URL (GitHub, StackOverflow, Tech Blog, Documentation).
+        - If it's a **Library/Framework**: Variable name: "Tech Adoption". States: "Stable/LTS", "Bleeding Edge", "Legacy".
+        - If it's a **Bug/Issue**: Variable name: "Bug Impact". States: "Critical Blocker", "Edge Case", "Resolved".
+        - If it's a **Tutorial/Guide**: Variable name: "Skill Acquisition". States: "Mastered", "In Progress", "Gap".
+        - **CATCH-ALL**: Analyze the technical concept and propose a relevant variable (e.g., "Performance Overhead", "Dev Experience").
         `;
     } else {
         instructions = `
@@ -308,7 +380,7 @@ ${JSON.stringify(variableSchema, null, 2)}
             parsed = JSON.parse(jsonString);
         } catch (e) {
             console.error("Failed to parse JSON from model response:", text);
-            throw new Error("AI response was not in valid JSON format.");
+            throw new Error("The AI response was not in a valid JSON format.");
         }
 
         const textToCheck = `${parsed.name} ${parsed.states.map((s: any) => s.name).join(' ')}`;
@@ -348,10 +420,7 @@ ${JSON.stringify(variableSchema, null, 2)}
 
     } catch (error) {
         console.error("Error analyzing link:", error);
-        if (error instanceof Error && error.message.startsWith('SECURITY_RISK_DETECTED')) {
-            throw error;
-        }
-        throw new Error("Failed to generate a variable from the link. Please ensure the URL is valid and accessible via search.");
+        throw new Error(formatGenAIError(error));
     }
 };
 
@@ -427,8 +496,7 @@ export const analyzePriceAction = async (description: string, imageBase64?: stri
 
     } catch (error) {
         console.error("Price action analysis error:", error);
-        if (error instanceof Error && error.message.startsWith('SECURITY_RISK_DETECTED')) throw error;
-        throw new Error("Failed to analyze price action.");
+        throw new Error(formatGenAIError(error));
     }
 };
 
@@ -491,8 +559,7 @@ export const processBatchData = async (inputData: string): Promise<Variable[]> =
 
     } catch (error) {
         console.error("Batch processing error:", error);
-        if (error instanceof Error && error.message.startsWith('SECURITY_RISK_DETECTED')) throw error;
-        throw new Error("Failed to process batch data.");
+        throw new Error(formatGenAIError(error));
     }
 };
 
@@ -531,7 +598,7 @@ export const generateCppAdaptivityCode = async (variables: Variable[]): Promise<
         return text;
 
     } catch (e) {
-        return "// Error generating C++ code: " + (e instanceof Error ? e.message : "Unknown error");
+        return "// Error generating C++ code: " + formatGenAIError(e);
     }
 };
 
@@ -555,6 +622,71 @@ export const createMedicalChat = (): Chat => {
             5. **Formatting**: Use Markdown for readability.
             
             If asked about specific medical advice for an individual, generalize the answer and strongly advise consulting a doctor.
+            `,
+            tools: [{ googleSearch: {} }]
+        }
+    });
+};
+
+// Create a dedicated Chat Session for Financial Advice (ICT) using the reasoning model
+export const createFinancialChat = (): Chat => {
+    const ai = getAiClient();
+    return ai.chats.create({
+        model: 'gemini-3-pro-preview',
+        config: {
+            systemInstruction: `You are an expert Financial Market Analyst and Trading Mentor specializing in ICT (Inner Circle Trader) Price Action principles.
+
+            YOUR EXPERTISE:
+            - Market Structure (MSH, MSS, BOS)
+            - Liquidity Pools (Buy-side/Sell-side Liquidity)
+            - Order Blocks (OB) & Breaker Blocks
+            - Fair Value Gaps (FVG) / Imbalances
+            - Optimal Trade Entry (OTE)
+            - Power of 3 (Accumulation, Manipulation, Distribution)
+
+            YOUR GOAL:
+            Provide detailed market analysis, educational explanations of price action, and strategic insights based on current market data found via search.
+
+            STRICT RULES:
+            1. **Google Search**: You MUST use the Google Search tool to validate current market sentiment, news, or price levels.
+            2. **Sources**: Prioritize information from **FXStreet, TradingView, Investing.com, Bloomberg, and Reuters**.
+            3. **Tone**: Professional, analytical, disciplined, risk-aware.
+            4. **Disclaimer**: You MUST always include a disclaimer that you are an AI and this is NOT financial advice.
+            5. **Formatting**: Use Markdown. Use bullet points for key levels (Support/Resistance/Liquidity).
+
+            If asked about specific trade setups, explain them in terms of probabilities and ICT concepts (e.g., "Price is approaching a bearish Order Block on the H4...").`,
+            tools: [{ googleSearch: {} }]
+        }
+    });
+};
+
+// Create a dedicated Chat Session for Programmer (Dev) use
+export const createProgrammerChat = (): Chat => {
+    const ai = getAiClient();
+    return ai.chats.create({
+        model: 'gemini-3-pro-preview',
+        config: {
+            systemInstruction: `You are a Senior Software Engineer, Open Source Contributor, and "The Programmer's Mate".
+
+            YOUR EXPERTISE:
+            - Full Stack Development (React, Node.js, Python, Go, Rust, C++)
+            - System Design & Scalable Architecture
+            - Debugging Complex Issues (Memory Leaks, Race Conditions)
+            - DevOps, CI/CD, and Cloud Infrastructure (AWS, GCP)
+            - Algorithms & Data Structures
+
+            YOUR GOAL:
+            Assist the user with finding libraries, debugging, architectural decisions, and understanding complex code patterns using the latest info from the web.
+
+            STRICT RULES:
+            1. **Google Search**: Use it to find the latest documentation, GitHub repositories, StackOverflow discussions, or tech blogs.
+            2. **Sources**: Prioritize GitHub, MDN Web Docs, StackOverflow, Official Documentation, and reputable engineering blogs.
+            3. **Tone**: Helpful, concise, pragmatic, and code-centric. Talk like a senior engineer to a peer.
+            4. **Fun Add-on**: Occasionally suggest a "Pro Tip", a useful VS Code extension, or a relevant developer joke/meme reference if context fits.
+            5. **Disclaimer**: I am an AI. Always review code before deploying to production.
+            6. **Formatting**: Use Code Blocks for all code snippets.
+
+            If asked for libraries, compare options (e.g., "Zod vs Yup").
             `,
             tools: [{ googleSearch: {} }]
         }

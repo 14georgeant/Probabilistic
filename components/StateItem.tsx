@@ -198,10 +198,10 @@ export const StateItem: React.FC<StateItemProps> = ({
                 <div className="flex justify-between items-center gap-4 pt-2">
                     <button 
                         onClick={() => onAddOutcome(state.id)} 
-                        className="flex-grow py-2 text-xs font-bold text-gray-500 hover:text-cyan-400 border border-dashed border-gray-700 hover:border-cyan-500/30 rounded hover:bg-cyan-500/5 transition-all flex items-center justify-center gap-2 group"
+                        className="flex-grow py-1.5 text-[10px] uppercase tracking-wider font-bold text-gray-500 hover:text-cyan-400 border border-dashed border-gray-700 hover:border-cyan-500/30 rounded hover:bg-cyan-500/5 transition-all flex items-center justify-center gap-1 group"
                     >
                         <PlusIcon className="w-3 h-3 group-hover:scale-110 transition-transform" /> 
-                        Add Outcome Scenario
+                        Add Outcome
                     </button>
 
                     {state.outcomes.length > 0 && (

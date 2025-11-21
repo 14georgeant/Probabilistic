@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { analyzePriceAction } from '../services/geminiService';
 import { Variable } from '../types';
@@ -19,7 +20,7 @@ const PriceActionAnalyzer: React.FC<PriceActionAnalyzerProps> = ({ onVariableGen
         if (e.target.files && e.target.files[0]) {
             const file = e.target.files[0];
             if (file.size > 5 * 1024 * 1024) {
-                setError("Image size too large. Please use an image under 5MB.");
+                setError("File Too Large: Please select an image under 5MB.");
                 return;
             }
             setSelectedImage(file);
@@ -39,11 +40,11 @@ const PriceActionAnalyzer: React.FC<PriceActionAnalyzerProps> = ({ onVariableGen
 
     const handleAnalyze = async () => {
         if (!isOnline) {
-            setError('Offline mode. Connect to internet to analyze price action.');
+            setError('Offline Mode: Connect to internet to analyze price action.');
             return;
         }
         if (!description.trim() && !selectedImage) {
-            setError('Please provide a description OR upload a chart image to analyze.');
+            setError('Input Required: Please provide a description OR upload a chart image to analyze.');
             return;
         }
 
@@ -63,7 +64,7 @@ const PriceActionAnalyzer: React.FC<PriceActionAnalyzerProps> = ({ onVariableGen
                         const base64 = result.split(',')[1];
                         resolve(base64);
                     };
-                    reader.onerror = reject;
+                    reader.onerror = () => reject(new Error("Failed to read image file"));
                     reader.readAsDataURL(selectedImage);
                  });
                  mimeType = selectedImage.type;
@@ -131,13 +132,23 @@ const PriceActionAnalyzer: React.FC<PriceActionAnalyzerProps> = ({ onVariableGen
 
             <textarea
                 value={description}
-                onChange={(e) => setDescription(e.target.value)}
+                onChange={(e) => {
+                    setDescription(e.target.value);
+                    if (error) setError('');
+                }}
                 placeholder={selectedImage ? "Add optional context about the image (e.g., 'Daily timeframe, looking for reversal')..." : "e.g., Price broke the 200 EMA on the 4H timeframe, retested support at 1.0520, and formed a bullish engulfing candle..."}
-                className="w-full h-32 bg-gray-700 border border-emerald-500/30 rounded-md p-3 text-white placeholder-gray-500 focus:ring-2 focus:ring-emerald-500 focus:outline-none resize-none mb-4 transition-all"
+                className={`w-full h-32 bg-gray-700 border rounded-md p-3 text-white placeholder-gray-500 focus:outline-none resize-none mb-4 transition-all ${
+                    error ? 'border-red-500 focus:ring-2 focus:ring-red-500/20' : 'border-emerald-500/30 focus:ring-2 focus:ring-emerald-500'
+                }`}
                 disabled={isLoading}
             />
 
-            {error && <div className="bg-red-900/50 border border-red-700 text-red-200 p-2 text-sm rounded mb-3 animate-pulse">{error}</div>}
+            {error && (
+                <div className="bg-red-900/50 border border-red-500/50 text-red-200 px-3 py-2 rounded-md mb-4 text-sm flex items-center gap-2 animate-pulse">
+                     <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                     <span>{error}</span>
+                </div>
+            )}
 
             <button
                 onClick={handleAnalyze}

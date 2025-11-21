@@ -326,9 +326,9 @@ const VariableInputList: React.FC<VariableInputListProps> = ({ variables, setVar
                          
                          <button 
                             onClick={() => addState(variable.id)} 
-                            className="w-full py-3 border-2 border-dashed border-gray-700 rounded-lg text-sm font-medium text-gray-400 hover:text-white hover:border-gray-500 hover:bg-gray-700/30 transition-all flex justify-center items-center gap-2 group"
+                            className="w-full py-2 border border-dashed border-gray-700 rounded-lg text-xs font-bold text-gray-500 hover:text-white hover:border-gray-500 hover:bg-gray-700/30 transition-all flex justify-center items-center gap-2 group"
                         >
-                             <PlusIcon className="group-hover:scale-110 transition-transform" /> Add Another State
+                             <PlusIcon className="w-4 h-4 group-hover:scale-110 transition-transform" /> Add State
                          </button>
                     </div>
                 </div>
@@ -339,12 +339,12 @@ const VariableInputList: React.FC<VariableInputListProps> = ({ variables, setVar
             {variables.length > 0 && (
                 <button 
                     onClick={addVariable} 
-                    className="w-full py-6 border-2 border-dashed border-gray-700 rounded-xl text-gray-400 font-bold hover:text-white hover:border-cyan-500/50 hover:bg-gray-800 transition-all flex justify-center items-center gap-3 group"
+                    className="w-full py-3 border border-dashed border-gray-700 rounded-xl text-gray-400 font-bold hover:text-white hover:border-cyan-500/50 hover:bg-gray-800 transition-all flex justify-center items-center gap-2 group"
                 >
-                    <div className="bg-gray-800 group-hover:bg-cyan-600 text-white rounded-full p-2 transition-colors shadow-lg border border-gray-600 group-hover:border-cyan-400">
-                    <PlusIcon className="w-6 h-6" />
+                    <div className="bg-gray-800 group-hover:bg-cyan-600 text-white rounded-full p-1 transition-colors shadow border border-gray-600 group-hover:border-cyan-400">
+                    <PlusIcon className="w-4 h-4" />
                     </div>
-                    <span className="text-lg tracking-wide">Create New Strategic Variable</span>
+                    <span className="text-sm tracking-wide">Add Variable</span>
                 </button>
             )}
         </div>

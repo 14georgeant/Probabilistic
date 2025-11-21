@@ -10,6 +10,8 @@ import PriceActionAnalyzer from './components/PriceActionAnalyzer';
 import TermsModal from './components/TermsModal';
 import GeminiTerminal from './components/GeminiTerminal';
 import MedicalChat from './components/MedicalChat';
+import FinancialChat from './components/FinancialChat';
+import ProgrammerChat from './components/ProgrammerChat';
 import TradaysCalendar from './components/TradaysCalendar';
 import CodeExportModal from './components/CodeExportModal';
 
@@ -29,11 +31,11 @@ const generateUUID = () => {
 };
 
 const App: React.FC = () => {
-    // App Mode: 'general' (Cyan), 'financial' (Emerald), 'health' (Rose), 'medical' (Indigo)
+    // App Mode: 'general', 'financial', 'health', 'medical', 'programmer'
     // Load from localStorage if available
-    const [appMode, setAppMode] = useState<'general' | 'financial' | 'health' | 'medical'>(() => {
+    const [appMode, setAppMode] = useState<'general' | 'financial' | 'health' | 'medical' | 'programmer'>(() => {
         const saved = localStorage.getItem('poa_app_mode');
-        return (saved as 'general' | 'financial' | 'health' | 'medical') || 'general';
+        return (saved as 'general' | 'financial' | 'health' | 'medical' | 'programmer') || 'general';
     });
 
     const [variables, setVariables] = useState<Variable[]>(() => {
@@ -80,6 +82,8 @@ const App: React.FC = () => {
     const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
     const [isTerminalOpen, setIsTerminalOpen] = useState<boolean>(false);
     const [isMedicalChatOpen, setIsMedicalChatOpen] = useState<boolean>(false);
+    const [isFinancialChatOpen, setIsFinancialChatOpen] = useState<boolean>(false);
+    const [isProgrammerChatOpen, setIsProgrammerChatOpen] = useState<boolean>(false);
     const [isCodeModalOpen, setIsCodeModalOpen] = useState<boolean>(false);
     
     // Terms and Privacy State
@@ -147,6 +151,7 @@ const App: React.FC = () => {
     const handleLoadFinancialTemplate = () => {
         setAppMode('financial');
         setTargetOutcomeName('High ROI');
+        setIsFinancialChatOpen(true);
         setVariables([
             {
                 id: generateUUID(),
@@ -230,6 +235,32 @@ const App: React.FC = () => {
         setGeminiInsights('');
     };
 
+    const handleLoadProgrammerTemplate = () => {
+        setAppMode('programmer');
+        setTargetOutcomeName('Ship Product');
+        setIsProgrammerChatOpen(true);
+        setVariables([
+            {
+                id: generateUUID(),
+                name: 'Tech Stack Selection',
+                states: [
+                    { id: generateUUID(), name: 'Mature (React/Node)', outcomes: [{ id: generateUUID(), name: 'Ship Product', probability: 90 }] },
+                    { id: generateUUID(), name: 'Bleeding Edge (New Framework)', outcomes: [{ id: generateUUID(), name: 'Ship Product', probability: 60 }] }
+                ]
+            },
+            {
+                id: generateUUID(),
+                name: 'Testing Strategy',
+                states: [
+                    { id: generateUUID(), name: 'TDD & CI/CD', outcomes: [{ id: generateUUID(), name: 'Ship Product', probability: 95 }] },
+                    { id: generateUUID(), name: 'Manual QA Only', outcomes: [{ id: generateUUID(), name: 'Ship Product', probability: 70 }] }
+                ]
+            }
+        ]);
+        setAnalysisResult(null);
+        setGeminiInsights('');
+    };
+
     // Clears all variables for a fresh start
     const handleClearAll = useCallback(() => {
         if (window.confirm("Are you sure you want to remove all variables? This cannot be undone.")) {
@@ -246,6 +277,9 @@ const App: React.FC = () => {
             setGeminiInsights('');
             setError('');
             setResetKey(prev => prev + 1); // Force remount of Chat/Terminal components
+            setIsMedicalChatOpen(false);
+            setIsFinancialChatOpen(false);
+            setIsProgrammerChatOpen(false);
             
             // Automatically set the correct target outcome name based on the active mode
             let defaultTarget = 'Success';
@@ -260,6 +294,9 @@ const App: React.FC = () => {
             } else if (appMode === 'medical') {
                 defaultTarget = 'Positive Prognosis';
                 defaultVarName = 'New Clinical Factor';
+            } else if (appMode === 'programmer') {
+                defaultTarget = 'Ship Product';
+                defaultVarName = 'New Tech Variable';
             }
             
             setTargetOutcomeName(defaultTarget);
@@ -279,14 +316,12 @@ const App: React.FC = () => {
             setActiveTab('manual');
             setIsCodeModalOpen(false);
             setIsTerminalOpen(false);
-            // Keep Medical Chat open if we are in medical mode, but reset its content via key
-            // setIsMedicalChatOpen(appMode === 'medical'); 
         }
     }, [appMode]);
 
     const handleAnalyze = useCallback(async () => {
         if (!isOnline) {
-            setError('You are offline. Please connect to the internet to use AI features.');
+            setError('Connection Offline: Please connect to the internet to use the AI features.');
             return;
         }
 
@@ -296,13 +331,13 @@ const App: React.FC = () => {
         setGeminiInsights('');
 
         if (!targetOutcomeName.trim()) {
-            setError('Please specify a target outcome name.');
+            setError('Validation Error: Please specify a target outcome name (e.g., "Success", "High ROI") before analyzing.');
             setIsLoading(false);
             return;
         }
 
         if (variables.length === 0) {
-            setError('Please add at least one variable to analyze.');
+            setError('Empty Model: Please add at least one variable to analyze.');
             setIsLoading(false);
             return;
         }
@@ -339,7 +374,7 @@ const App: React.FC = () => {
             generateCombinations(0, [], 1);
             
             if (combinations.length === 0) {
-                throw new Error("Could not generate any combinations. Ensure outcomes match your target outcome name.");
+                throw new Error("Model Mismatch: Could not find any paths leading to '" + targetOutcomeName + "'. Ensure your variable outcomes match this target name exactly.");
             }
 
             const best = combinations.reduce((max, current) => current.probability > max.probability ? current : max, combinations[0]);
@@ -405,6 +440,14 @@ const App: React.FC = () => {
                 btn: 'bg-indigo-600 hover:bg-indigo-500',
                 focus: 'focus:ring-indigo-500'
             };
+            case 'programmer': return {
+                text: 'text-lime-400',
+                bg: 'bg-lime-900',
+                border: 'border-lime-500',
+                hover: 'hover:text-lime-300',
+                btn: 'bg-lime-600 hover:bg-lime-500',
+                focus: 'focus:ring-lime-500'
+            };
             default: return {
                 text: 'text-cyan-400',
                 bg: 'bg-gray-700', // special case
@@ -447,11 +490,13 @@ const App: React.FC = () => {
             <div className="min-h-screen bg-gray-900 text-gray-100 flex flex-col items-center justify-center text-center p-4">
                 <Header onOpenTerms={handleOpenTerms} />
                 <main className="flex-grow container mx-auto flex items-center justify-center">
-                     <div className="bg-gray-800 p-8 rounded-lg shadow-2xl max-w-lg">
-                        <h2 className="text-3xl font-bold text-red-500 mb-4 flex items-center justify-center">
-                            Security Alert
-                        </h2>
-                        <p className="text-gray-300">{error}</p>
+                     <div className="bg-gray-800 p-8 rounded-lg shadow-2xl max-w-lg border border-red-600/50">
+                        <div className="w-16 h-16 bg-red-900/50 rounded-full flex items-center justify-center mx-auto mb-4">
+                             <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                        </div>
+                        <h2 className="text-3xl font-bold text-red-500 mb-4">Security Alert</h2>
+                        <p className="text-gray-300 mb-6">{error}</p>
+                        <button onClick={() => window.location.reload()} className="bg-red-700 hover:bg-red-600 text-white px-6 py-2 rounded-lg font-bold">Reload Application</button>
                     </div>
                 </main>
             </div>
@@ -495,6 +540,13 @@ const App: React.FC = () => {
                             Medical Research
                             <span className="ml-1 bg-indigo-500 text-white text-[8px] px-1 rounded font-black tracking-tighter">CLINICAL</span>
                         </button>
+                        <button 
+                            onClick={() => setAppMode('programmer')}
+                            className={`px-3 md:px-4 py-1.5 rounded-md text-xs md:text-sm font-bold transition-all flex items-center gap-2 ${appMode === 'programmer' ? 'bg-lime-900 text-lime-400 shadow' : 'text-gray-500 hover:text-gray-300'}`}
+                        >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
+                            Programmer Finds
+                        </button>
                     </div>
                     
                     {appMode === 'financial' && (
@@ -512,6 +564,11 @@ const App: React.FC = () => {
                              Populate Clinical Template
                          </button>
                     )}
+                    {appMode === 'programmer' && (
+                         <button onClick={handleLoadProgrammerTemplate} className="text-xs text-lime-400 hover:text-lime-300 underline decoration-dotted">
+                             Populate Tech Template
+                         </button>
+                    )}
                 </div>
             </div>
 
@@ -519,18 +576,18 @@ const App: React.FC = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
                     <div className={`bg-gray-800 p-6 rounded-lg shadow-2xl flex flex-col border-t-4 ${theme.border}`}>
                         <h2 className={`text-2xl font-bold mb-4 ${theme.text}`}>
-                            1. {appMode === 'medical' ? 'Clinical Factors & Symptoms' : appMode === 'health' ? 'Bio-Metrics & Routines' : appMode === 'financial' ? 'Portfolio & Risk Factors' : 'Define Variables & Outcomes'}
+                            1. {appMode === 'medical' ? 'Clinical Factors & Symptoms' : appMode === 'health' ? 'Bio-Metrics & Routines' : appMode === 'financial' ? 'Portfolio & Risk Factors' : appMode === 'programmer' ? 'Tech Stack & Decisions' : 'Define Variables & Outcomes'}
                         </h2>
                         <div className="mb-6">
                             <label htmlFor="targetOutcome" className="block text-sm font-medium text-gray-300 mb-2">
-                                {appMode === 'medical' ? 'Clinical Goal (e.g., Accurate Diagnosis, Recovery)' : appMode === 'health' ? 'Performance Goal (e.g., Weight Loss, Hypertrophy)' : appMode === 'financial' ? 'Financial Goal (e.g., High ROI, Solvency)' : 'Target Outcome Name'}
+                                {appMode === 'medical' ? 'Clinical Goal (e.g., Accurate Diagnosis, Recovery)' : appMode === 'health' ? 'Performance Goal (e.g., Weight Loss, Hypertrophy)' : appMode === 'financial' ? 'Financial Goal (e.g., High ROI, Solvency)' : appMode === 'programmer' ? 'Engineering Goal (e.g., Ship Product, Scalability)' : 'Target Outcome Name'}
                             </label>
                             <input
                                 id="targetOutcome"
                                 type="text"
                                 value={targetOutcomeName}
                                 onChange={(e) => setTargetOutcomeName(e.target.value)}
-                                placeholder={appMode === 'medical' ? "e.g., Disease Remission" : appMode === 'health' ? "e.g., Sub-3 Hour Marathon" : appMode === 'financial' ? "e.g., Maximize Returns" : "e.g., Success, Sale, Conversion"}
+                                placeholder={appMode === 'medical' ? "e.g., Disease Remission" : appMode === 'health' ? "e.g., Sub-3 Hour Marathon" : appMode === 'financial' ? "e.g., Maximize Returns" : appMode === 'programmer' ? "e.g., Ship on Time" : "e.g., Success, Sale, Conversion"}
                                 className={`w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white placeholder-gray-400 focus:ring-2 transition ${theme.focus}`}
                             />
                         </div>
@@ -567,21 +624,47 @@ const App: React.FC = () => {
                     <div className={`bg-gray-800 p-6 rounded-lg shadow-2xl border-t-4 ${theme.border} relative`}>
                         <div className="flex justify-between items-center mb-4">
                             <h2 className={`text-2xl font-bold ${theme.text}`}>
-                                2. {appMode === 'medical' ? 'Clinical Analysis' : appMode === 'health' ? 'Performance Analysis' : appMode === 'financial' ? 'Advisory & Forecast' : 'Analysis & Impact'}
+                                2. {appMode === 'medical' ? 'Clinical Analysis' : appMode === 'health' ? 'Performance Analysis' : appMode === 'financial' ? 'Advisory & Forecast' : appMode === 'programmer' ? 'Architecture Review' : 'Analysis & Impact'}
                             </h2>
-                            {appMode === 'medical' && (
+                            {(appMode === 'medical' || appMode === 'financial' || appMode === 'programmer') && (
                                 <button 
-                                    onClick={() => setIsMedicalChatOpen(true)}
-                                    className="text-xs bg-indigo-700 hover:bg-indigo-600 text-white px-3 py-1 rounded-full flex items-center gap-1 animate-pulse"
+                                    onClick={() => appMode === 'medical' ? setIsMedicalChatOpen(true) : appMode === 'financial' ? setIsFinancialChatOpen(true) : setIsProgrammerChatOpen(true)}
+                                    className={`text-xs px-3 py-1 rounded-full flex items-center gap-1 animate-pulse ${
+                                        appMode === 'medical' 
+                                        ? 'bg-indigo-700 hover:bg-indigo-600 text-white' 
+                                        : appMode === 'financial'
+                                        ? 'bg-emerald-700 hover:bg-emerald-600 text-white'
+                                        : 'bg-lime-700 hover:bg-lime-600 text-white'
+                                    }`}
                                 >
-                                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
-                                    AI Helper
+                                    {appMode === 'programmer' ? (
+                                        <>
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                            Dev Mate
+                                        </>
+                                    ) : (
+                                        <>
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
+                                            {appMode === 'medical' ? 'Medical AI' : 'ICT Analyst'}
+                                        </>
+                                    )}
                                 </button>
                             )}
                         </div>
                         
                         <div className="h-full flex flex-col">
-                            {error && <div className="bg-red-900 border border-red-700 text-red-200 p-3 rounded-md mb-4">{error}</div>}
+                            {error && (
+                                <div className="bg-red-900/50 border border-red-500/50 text-red-200 p-4 rounded-lg mb-6 flex items-start gap-3 animate-in slide-in-from-top-2 shadow-lg backdrop-blur-sm">
+                                    <svg className="w-6 h-6 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+                                    <div className="flex-grow">
+                                        <h3 className="font-bold text-red-100 text-sm uppercase tracking-wide mb-1">Analysis Interrupted</h3>
+                                        <p className="text-sm leading-relaxed opacity-90">{error}</p>
+                                    </div>
+                                    <button onClick={() => setError('')} className="text-red-400 hover:text-red-100 transition-colors" title="Dismiss Error">
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                                    </button>
+                                </div>
+                            )}
                             <ResultsDisplay 
                                 result={analysisResult} 
                                 insights={geminiInsights} 
@@ -594,10 +677,86 @@ const App: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Financial Mode Extras: Tradays Calendar */}
+                {/* Financial Mode Extras */}
                 {appMode === 'financial' && (
-                    <div className="mt-8 animate-in slide-in-from-bottom duration-700">
+                    <div className="mt-8 space-y-8 animate-in slide-in-from-bottom duration-700">
+                        
+                        {/* NotebookLM Integration Card */}
+                        <div className="bg-gray-800 rounded-xl border border-emerald-500/30 p-1 shadow-lg overflow-hidden">
+                             <div className="bg-gray-900/50 p-6 rounded-lg relative overflow-hidden group">
+                                {/* Background Decoration */}
+                                <div className="absolute -right-10 -top-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl group-hover:bg-emerald-500/20 transition-colors"></div>
+                                
+                                <div className="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+                                    <div className="flex items-start gap-5">
+                                        <div className="w-12 h-12 bg-emerald-900/80 rounded-xl flex items-center justify-center border border-emerald-500/50 shadow-inner shrink-0">
+                                             <svg className="w-6 h-6 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
+                                        </div>
+                                        <div>
+                                            <h3 className="text-lg font-bold text-white flex items-center gap-3">
+                                                NotebookLM Strategy Core
+                                                <span className="px-2 py-0.5 rounded text-[10px] font-black tracking-wider bg-emerald-500 text-black">CONNECTED</span>
+                                            </h3>
+                                            <p className="text-emerald-200/70 text-sm mt-1 leading-relaxed max-w-2xl">
+                                                Access the dedicated deep-learning knowledge base. Contains processed financial whitepapers, historical backtest data, and granular ICT strategy documentation referenced by the AI Adviser.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    
+                                    <a 
+                                        href="https://notebooklm.google.com/notebook/f5f77cf4-d41e-4937-9b67-2a718b601c2c"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="whitespace-nowrap px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold rounded-lg shadow-lg shadow-emerald-900/20 transition-all transform hover:-translate-y-0.5 flex items-center gap-2 group/btn"
+                                    >
+                                        <span>Launch Notebook</span>
+                                        <svg className="w-4 h-4 group-hover/btn:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                                    </a>
+                                </div>
+                             </div>
+                        </div>
+
                         <TradaysCalendar />
+                    </div>
+                )}
+
+                {/* Programmer Mode Extras */}
+                {appMode === 'programmer' && (
+                     <div className="mt-8 space-y-8 animate-in slide-in-from-bottom duration-700">
+                        {/* Programmer Finds Notebook Card */}
+                        <div className="bg-gray-800 rounded-xl border border-lime-500/30 p-1 shadow-lg overflow-hidden">
+                             <div className="bg-gray-900/50 p-6 rounded-lg relative overflow-hidden group">
+                                {/* Background Decoration */}
+                                <div className="absolute -right-10 -top-10 w-40 h-40 bg-lime-500/10 rounded-full blur-3xl group-hover:bg-lime-500/20 transition-colors"></div>
+                                
+                                <div className="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
+                                    <div className="flex items-start gap-5">
+                                        <div className="w-12 h-12 bg-lime-900/80 rounded-xl flex items-center justify-center border border-lime-500/50 shadow-inner shrink-0">
+                                             <svg className="w-6 h-6 text-lime-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
+                                        </div>
+                                        <div>
+                                            <h3 className="text-lg font-bold text-white flex items-center gap-3">
+                                                Programmer Finds (Knowledge Base)
+                                                <span className="px-2 py-0.5 rounded text-[10px] font-black tracking-wider bg-lime-500 text-black">ONLINE</span>
+                                            </h3>
+                                            <p className="text-lime-200/70 text-sm mt-1 leading-relaxed max-w-2xl">
+                                                Explore curated technical resources, coding patterns, and research papers sourced from the "Programmer Finds" notebook. Supplement your architecture decisions with fun, deep-dive add-ons.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    
+                                    <a 
+                                        href="https://notebooklm.google.com/notebook/ad175927-4682-45f7-909b-778e6362b41f"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="whitespace-nowrap px-5 py-2.5 bg-lime-600 hover:bg-lime-500 text-white text-sm font-bold rounded-lg shadow-lg shadow-lime-900/20 transition-all transform hover:-translate-y-0.5 flex items-center gap-2 group/btn"
+                                    >
+                                        <span>Access Notebook</span>
+                                        <svg className="w-4 h-4 group-hover/btn:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                                    </a>
+                                </div>
+                             </div>
+                        </div>
                     </div>
                 )}
             </main>
@@ -614,6 +773,18 @@ const App: React.FC = () => {
                 key={`med-chat-${resetKey}`}
                 isOpen={isMedicalChatOpen}
                 onClose={() => setIsMedicalChatOpen(false)}
+            />
+
+            <FinancialChat 
+                key={`fin-chat-${resetKey}`}
+                isOpen={isFinancialChatOpen}
+                onClose={() => setIsFinancialChatOpen(false)}
+            />
+
+            <ProgrammerChat
+                key={`prog-chat-${resetKey}`}
+                isOpen={isProgrammerChatOpen}
+                onClose={() => setIsProgrammerChatOpen(false)}
             />
 
             <CodeExportModal 
@@ -640,7 +811,7 @@ const App: React.FC = () => {
                             : `${theme.btn} text-white hover:scale-105`
                         }`}
                     >
-                        {isLoading ? 'Analyzing...' : !isOnline ? 'Offline - Connect to Internet for AI' : `Generate ${appMode === 'medical' ? 'Clinical Report' : appMode === 'health' ? 'Health Report' : appMode === 'financial' ? 'Financial Plan' : 'Analysis'}`}
+                        {isLoading ? 'Analyzing...' : !isOnline ? 'Offline - Connect to Internet for AI' : `Generate ${appMode === 'medical' ? 'Clinical Report' : appMode === 'health' ? 'Health Report' : appMode === 'financial' ? 'Financial Plan' : appMode === 'programmer' ? 'Engineering Plan' : 'Analysis'}`}
                     </button>
                 </div>
             </footer>
