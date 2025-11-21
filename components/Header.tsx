@@ -7,6 +7,16 @@ interface HeaderProps {
     onOpenTerminal?: () => void;
 }
 
+const HelixIcon = ({ className = "w-6 h-6" }: { className?: string }) => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+        <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 0c2.21 0 4 1.79 4 4s-1.79 4-4 4-4-1.79-4-4 1.79-4 4-4z" className="opacity-20" />
+        <path d="M18 12c0 3.31-2.69 6-6 6s-6-2.69-6-6" />
+        <path d="M12 22c5.5 0 10-4.5 10-10S17.5 2 12 2 2 6.5 2 12s4.5 10 10 10z" className="opacity-50" />
+        <path d="M14.83 9.17a4 4 0 0 0-5.66 5.66" />
+        <path d="M14.83 14.83a4 4 0 0 0-5.66-5.66" />
+    </svg>
+);
+
 const Header: React.FC<HeaderProps> = ({ onOpenTerms, onOpenTerminal }) => {
     const [installPrompt, setInstallPrompt] = useState<any>(null);
 
@@ -73,12 +83,14 @@ const Header: React.FC<HeaderProps> = ({ onOpenTerms, onOpenTerminal }) => {
                         {installPrompt && (
                             <button 
                                 onClick={handleInstallClick}
-                                className="bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold py-1.5 px-3 rounded-full transition-colors shadow-lg flex items-center"
+                                className="bg-gradient-to-br from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white p-2 rounded-full transition-all shadow-lg hover:shadow-cyan-500/30 group relative"
+                                aria-label="Install App"
+                                title="Download / Install App"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-3 h-3 mr-1">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M12 9.75V1.5m0 0L8.25 5.25M12 1.5 15.75 5.25" />
-                                </svg>
-                                Install
+                                <HelixIcon className="w-6 h-6 animate-spin-slow group-hover:rotate-180 transition-transform duration-700" />
+                                <span className="absolute top-full right-0 mt-2 bg-gray-900 text-xs px-2 py-1 rounded text-white opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none border border-gray-700">
+                                    Download App
+                                </span>
                             </button>
                         )}
                         {onOpenTerms && (

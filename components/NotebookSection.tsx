@@ -10,7 +10,7 @@ interface AddOn {
 }
 
 interface NotebookSectionProps {
-    mode: 'financial' | 'programmer' | 'health' | 'medical' | 'general';
+    mode: 'financial' | 'programmer' | 'health' | 'medical' | 'general' | 'mental';
     url: string;
     title: string;
     description: string;
@@ -73,6 +73,19 @@ const NotebookSection: React.FC<NotebookSectionProps> = ({ mode, url, title, des
                 glow: 'bg-rose-500/10',
                 text: 'text-rose-100',
                 accent: 'text-rose-400'
+            };
+            case 'mental': return {
+                border: 'border-amber-500/30',
+                bg: 'bg-amber-900/20',
+                container: 'from-amber-900/20 to-gray-900',
+                hover: 'group-hover:bg-amber-500/10',
+                iconBg: 'bg-amber-900/80',
+                iconColor: 'text-amber-400',
+                btn: 'bg-amber-600 hover:bg-amber-500 shadow-amber-900/20',
+                badge: 'bg-amber-500',
+                glow: 'bg-amber-500/10',
+                text: 'text-amber-100',
+                accent: 'text-amber-400'
             };
             default: return {
                 border: 'border-cyan-500/30',

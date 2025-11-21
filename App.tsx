@@ -13,6 +13,7 @@ import MedicalChat from './components/MedicalChat';
 import FinancialChat from './components/FinancialChat';
 import ProgrammerChat from './components/ProgrammerChat';
 import HealthChat from './components/HealthChat';
+import MentalChat from './components/MentalChat';
 import TradaysCalendar from './components/TradaysCalendar';
 import CodeExportModal from './components/CodeExportModal';
 import NotebookSection from './components/NotebookSection';
@@ -22,10 +23,10 @@ import { generateUUID } from './utils';
 const App: React.FC = () => {
     const [showSplash, setShowSplash] = useState(true);
 
-    // App Mode: 'general', 'financial', 'health', 'medical', 'programmer'
-    const [appMode, setAppMode] = useState<'general' | 'financial' | 'health' | 'medical' | 'programmer'>(() => {
+    // App Mode: 'general', 'financial', 'health', 'medical', 'programmer', 'mental'
+    const [appMode, setAppMode] = useState<'general' | 'financial' | 'health' | 'medical' | 'programmer' | 'mental'>(() => {
         const saved = localStorage.getItem('poa_app_mode');
-        return (saved as 'general' | 'financial' | 'health' | 'medical' | 'programmer') || 'general';
+        return (saved as 'general' | 'financial' | 'health' | 'medical' | 'programmer' | 'mental') || 'general';
     });
 
     const [variables, setVariables] = useState<Variable[]>(() => {
@@ -74,6 +75,7 @@ const App: React.FC = () => {
     const [isFinancialChatOpen, setIsFinancialChatOpen] = useState<boolean>(false);
     const [isProgrammerChatOpen, setIsProgrammerChatOpen] = useState<boolean>(false);
     const [isHealthChatOpen, setIsHealthChatOpen] = useState<boolean>(false);
+    const [isMentalChatOpen, setIsMentalChatOpen] = useState<boolean>(false);
     const [isCodeModalOpen, setIsCodeModalOpen] = useState<boolean>(false);
     
     // Terms and Privacy State
@@ -243,6 +245,40 @@ const App: React.FC = () => {
         setGeminiInsights('');
     };
 
+    const handleLoadMentalTemplate = () => {
+        setAppMode('mental');
+        setTargetOutcomeName('Inner Balance');
+        // Mental mode is now a full page chat, so we don't need to toggle the popup
+        setVariables([
+            {
+                id: generateUUID(),
+                name: 'Sleep Quality',
+                states: [
+                    { id: generateUUID(), name: 'Restful (7-8hrs)', outcomes: [{ id: generateUUID(), name: 'Inner Balance', probability: 85 }] },
+                    { id: generateUUID(), name: 'Fragmented / Insomnia', outcomes: [{ id: generateUUID(), name: 'Inner Balance', probability: 40 }] }
+                ]
+            },
+            {
+                id: generateUUID(),
+                name: 'Social Connection',
+                states: [
+                    { id: generateUUID(), name: 'Active & Supportive', outcomes: [{ id: generateUUID(), name: 'Inner Balance', probability: 80 }] },
+                    { id: generateUUID(), name: 'Isolated', outcomes: [{ id: generateUUID(), name: 'Inner Balance', probability: 35 }] }
+                ]
+            },
+            {
+                id: generateUUID(),
+                name: 'Mindfulness Practice',
+                states: [
+                    { id: generateUUID(), name: 'Daily Meditation', outcomes: [{ id: generateUUID(), name: 'Inner Balance', probability: 75 }] },
+                    { id: generateUUID(), name: 'Sporadic / None', outcomes: [{ id: generateUUID(), name: 'Inner Balance', probability: 50 }] }
+                ]
+            }
+        ]);
+        setAnalysisResult(null);
+        setGeminiInsights('');
+    };
+
     const handleClearAll = useCallback(() => {
         if (window.confirm("Are you sure you want to remove all variables? This cannot be undone.")) {
             setVariables([]);
@@ -262,6 +298,7 @@ const App: React.FC = () => {
             setIsFinancialChatOpen(false);
             setIsProgrammerChatOpen(false);
             setIsHealthChatOpen(false);
+            setIsMentalChatOpen(false);
             
             let defaultTarget = 'Success';
             let defaultVarName = 'New Strategy Variable';
@@ -278,6 +315,9 @@ const App: React.FC = () => {
             } else if (appMode === 'programmer') {
                 defaultTarget = 'Ship Product';
                 defaultVarName = 'New Tech Variable';
+            } else if (appMode === 'mental') {
+                defaultTarget = 'Inner Balance';
+                defaultVarName = 'New Life Factor';
             }
             
             setTargetOutcomeName(defaultTarget);
@@ -389,11 +429,25 @@ const App: React.FC = () => {
         setActiveTab('manual');
     };
 
-    const scroll = (direction: 'left' | 'right') => {
+    const modes = ['general', 'financial', 'health', 'medical', 'programmer', 'mental'] as const;
+
+    const navigateMode = (direction: 'left' | 'right') => {
+        const currentIndex = modes.indexOf(appMode);
+        let newIndex;
+        if (direction === 'right') {
+            newIndex = (currentIndex + 1) % modes.length;
+        } else {
+            newIndex = (currentIndex - 1 + modes.length) % modes.length;
+        }
+        setAppMode(modes[newIndex]);
+        
+        // Scroll logic to keep button in view
         if (scrollContainerRef.current) {
-            const { current } = scrollContainerRef;
-            const scrollAmount = 200;
-            current.scrollBy({ left: direction === 'right' ? scrollAmount : -scrollAmount, behavior: 'smooth' });
+            const container = scrollContainerRef.current;
+            const buttons = container.querySelectorAll('button');
+            if (buttons[newIndex]) {
+                 buttons[newIndex].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }
         }
     };
 
@@ -430,6 +484,14 @@ const App: React.FC = () => {
                 hover: 'hover:text-lime-300',
                 btn: 'bg-lime-600 hover:bg-lime-500',
                 focus: 'focus:ring-lime-500'
+            };
+            case 'mental': return {
+                text: 'text-amber-400',
+                bg: 'bg-amber-900',
+                border: 'border-amber-500',
+                hover: 'hover:text-amber-300',
+                btn: 'bg-amber-600 hover:bg-amber-500',
+                focus: 'focus:ring-amber-500'
             };
             default: return {
                 text: 'text-cyan-400',
@@ -539,17 +601,17 @@ const App: React.FC = () => {
 
                     {/* Navigation Arrows */}
                     <button 
-                        onClick={() => scroll('left')}
+                        onClick={() => navigateMode('left')}
                         className="absolute left-1 top-1/2 -translate-y-1/2 z-30 bg-gray-800/90 p-1.5 rounded-full text-white shadow-lg border border-gray-700 md:hidden active:scale-95 transition-all opacity-70 hover:opacity-100"
-                        aria-label="Scroll Left"
+                        aria-label="Previous Mode"
                     >
                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                     </button>
                     
                     <button 
-                        onClick={() => scroll('right')}
+                        onClick={() => navigateMode('right')}
                         className="absolute right-1 top-1/2 -translate-y-1/2 z-30 bg-gray-800/90 p-1.5 rounded-full text-white shadow-lg border border-gray-700 md:hidden active:scale-95 transition-all opacity-90 hover:opacity-100"
-                        aria-label="Scroll Right"
+                        aria-label="Next Mode"
                     >
                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                     </button>
@@ -590,6 +652,13 @@ const App: React.FC = () => {
                                 icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>}
                                 onClick={() => setAppMode('programmer')} 
                             />
+                             <ModeButton 
+                                mode="mental" 
+                                label="Mental Awareness" 
+                                activeColor="bg-amber-600"
+                                icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+                                onClick={() => setAppMode('mental')} 
+                            />
                         </div>
                     </div>
                 </div>
@@ -615,10 +684,22 @@ const App: React.FC = () => {
                              Populate Tech Template
                          </button>
                     )}
+                    {appMode === 'mental' && (
+                         <span className="text-xs text-amber-400 animate-pulse">
+                             Safe Sanctuary Mode Active
+                         </span>
+                    )}
                 </div>
             </div>
 
-            <main className="flex-grow container mx-auto p-4 md:p-8">
+            <main className="flex-grow container mx-auto p-4 md:p-8 flex flex-col">
+                {appMode === 'mental' ? (
+                    <div className="flex-grow flex flex-col items-center justify-center h-full">
+                        <div className="w-full h-[calc(100vh-200px)] max-h-[800px]">
+                             <MentalChat isOpen={true} onClose={() => {}} isFullPage={true} />
+                        </div>
+                    </div>
+                ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
                     <div className={`bg-gray-800 p-6 rounded-lg shadow-2xl flex flex-col border-t-4 ${theme.border}`}>
                         <h2 className={`text-2xl font-bold mb-4 ${theme.text}`}>
@@ -724,6 +805,7 @@ const App: React.FC = () => {
                         </div>
                     </div>
                 </div>
+                )}
 
                 {appMode === 'financial' && (
                     <NotebookSection 
@@ -816,12 +898,23 @@ const App: React.FC = () => {
                 onClose={() => setIsHealthChatOpen(false)}
             />
 
+            {/* MentalChat is managed in the main view for 'mental' mode, but kept here as a modal for cross-mode access if needed or removed if exclusive */}
+            {/* We only render the modal version if we are NOT in mental mode, to prevent duplication */}
+            {appMode !== 'mental' && (
+                <MentalChat
+                    key={`mental-chat-${resetKey}`}
+                    isOpen={isMentalChatOpen}
+                    onClose={() => setIsMentalChatOpen(false)}
+                />
+            )}
+
             <CodeExportModal 
                 isOpen={isCodeModalOpen}
                 onClose={() => setIsCodeModalOpen(false)}
                 variables={variables}
             />
 
+            {appMode !== 'mental' && (
             <footer className="sticky bottom-0 bg-gray-900/80 backdrop-blur-sm p-4 border-t border-gray-700 z-10">
                 <div className="container mx-auto flex flex-col md:flex-row justify-center items-center gap-4">
                     <button
@@ -844,6 +937,7 @@ const App: React.FC = () => {
                     </button>
                 </div>
             </footer>
+            )}
         </div>
     );
 };

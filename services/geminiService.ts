@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type, Chat } from "@google/genai";
 import { Variable, AnalysisResult, Outcome, VariableState } from '../types';
 import { generateUUID } from '../utils';
@@ -113,7 +114,7 @@ ${text}
 export const generateAnalysisSummary = async (
     variables: Variable[], 
     result: AnalysisResult, 
-    mode: 'general' | 'financial' | 'health' | 'medical' | 'programmer' = 'general'
+    mode: 'general' | 'financial' | 'health' | 'medical' | 'programmer' | 'mental' = 'general'
 ): Promise<string> => {
 
   const variablesDescription = variables.map(v => 
@@ -211,6 +212,26 @@ export const generateAnalysisSummary = async (
       - **Optimization:** Suggest a specific refactor, tool, or pattern to fix the bottleneck.
       - **New Metric:** Suggest a variable to track (e.g., "Cyclomatic Complexity", "Test Coverage", "Mean Time to Recovery").
       `;
+  } else if (mode === 'mental') {
+      systemPrompt = `You are a Compassionate Wellness Coach. Your goal is to analyze the user's life factors and provide supportive, validating, and constructive advice to help them achieve mental balance.
+      
+      **Role:** Wellness Coach / Supportive Friend.
+      **Tone:** Warm, Empathetic, Gentle, Non-Judgmental.
+      
+      **Structure your advice as follows:**
+      #### 1. Emotional Outlook
+      Gently reflect on the likelihood of achieving the desired state of mind based on the factors provided. Validate their effort.
+      
+      #### 2. Pillars of Strength
+      Identify the positive habit or environmental factor that is most supporting their well-being.
+      
+      #### 3. Areas for Gentle Care
+      Identify the factor that might be causing stress or lowering resilience. Frame this softly as an area that needs attention, not a failure.
+      
+      #### 4. Wellness Suggestions
+      - **Self-Care Step:** Suggest a small, manageable action (e.g., "5 minutes of breathing", "Writing in a journal").
+      - **Awareness:** Suggest a feeling or trigger to observe (e.g., "Notice when you feel tired").
+      `;
   } else {
       systemPrompt = `You are a senior product analyst and technical advisor. Your goal is to provide unbiased, constructive, and actionable advice to help a user improve their strategy.
 
@@ -299,7 +320,7 @@ const variableSchema = {
 
 export const analyzeLinkForVariables = async (
     url: string, 
-    mode: 'general' | 'financial' | 'health' | 'medical' | 'programmer' = 'general'
+    mode: 'general' | 'financial' | 'health' | 'medical' | 'programmer' | 'mental' = 'general'
 ): Promise<{ variable: Variable; sources: { title: string; uri: string }[] }> => {
     
     let instructions = "";
@@ -342,6 +363,15 @@ export const analyzeLinkForVariables = async (
         - If it's a **Bug/Issue**: Variable name: "Bug Impact". States: "Critical Blocker", "Edge Case", "Resolved".
         - If it's a **Tutorial/Guide**: Variable name: "Skill Acquisition". States: "Mastered", "In Progress", "Gap".
         - **CATCH-ALL**: Analyze the technical concept and propose a relevant variable (e.g., "Performance Overhead", "Dev Experience").
+        `;
+    } else if (mode === 'mental') {
+        instructions = `
+        This is for a **Mental Wellness & Resilience Model**.
+        Analyze the URL (Psychology Article, Meditation Guide, Wellness Blog).
+        - If it's a **Coping Strategy**: Variable name: "Strategy Efficacy". States: "Highly Effective", "Moderate Relief", "No Change".
+        - If it's about **Stressors**: Variable name: "Stress Impact". States: "Manageable", "Overwhelming".
+        - If it's **Advice**: Variable name: "Habit Implementation". States: "Consistent Practice", "Occasional", "None".
+        - **CATCH-ALL**: Analyze the psychological concept and propose a variable related to mental well-being.
         `;
     } else {
         instructions = `
@@ -470,6 +500,31 @@ export const createHealthChat = (): Chat => {
         model: "gemini-2.5-flash",
         config: {
             systemInstruction: "You are an Elite Sports Scientist and Performance Coach. Provide evidence-based advice on training, nutrition, and recovery. Reference sports science journals where possible.",
+            tools: [{ googleSearch: {} }],
+        }
+    });
+};
+
+export const createMentalChat = (): Chat => {
+    const ai = getAiClient();
+    return ai.chats.create({
+        model: "gemini-2.5-flash",
+        config: {
+            systemInstruction: `You are Serenity, a highly empathetic, soft-spoken, and compassionate mental wellness adviser.
+            
+            **Your Persona:**
+            - **Tone:** Warm, gentle, validating, non-judgmental, and deeply human.
+            - **Style:** Use active listening. Reflect the user's feelings back to them. Use soft phrases like "I hear you," "That sounds incredibly heavy," "It's okay to feel this way."
+            - **Goal:** To provide a safe digital sanctuary where the user feels heard and understood. Offer gentle guidance or mindfulness techniques only when appropriate, never force advice.
+            
+            **Critical Safety Rules:**
+            - If the user expresses intent of self-harm or suicide, you MUST respond with immediate care and provide emergency resources (e.g., "I'm so concerned about you. Please reach out to a crisis line...").
+            - Do not diagnose medical conditions.
+            
+            **Interaction Style:**
+            - Keep responses concise but full of warmth.
+            - Ask gentle open-ended questions to help them explore their feelings.
+            `,
             tools: [{ googleSearch: {} }],
         }
     });
