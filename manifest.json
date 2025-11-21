@@ -23,5 +23,19 @@
       "purpose": "any maskable"
     }
   ],
+  "screenshots": [
+    {
+      "src": "https://via.placeholder.com/1080x1920.png?text=Outcome+Analyzer+Dashboard",
+      "sizes": "1080x1920",
+      "type": "image/png",
+      "form_factor": "narrow"
+    },
+    {
+      "src": "https://via.placeholder.com/1920x1080.png?text=Strategic+Analysis+Desktop",
+      "sizes": "1920x1080",
+      "type": "image/png",
+      "form_factor": "wide"
+    }
+  ],
   "orientation": "portrait-primary"
 }

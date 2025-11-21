@@ -65,6 +65,10 @@ const App: React.FC = () => {
         setShowTermsModal(false);
     };
 
+    const handleOpenTerms = () => {
+        setShowTermsModal(true);
+    };
+
     const handleSecurityRisk = () => {
         setError('AI-generated content was flagged for a potential security risk. This session has been blocked pending review. Please refresh to start over.');
         setIsBlocked(true);
@@ -185,7 +189,7 @@ const App: React.FC = () => {
     if (isBlocked) {
         return (
             <div className="min-h-screen bg-gray-900 text-gray-100 flex flex-col items-center justify-center text-center p-4">
-                <Header />
+                <Header onOpenTerms={handleOpenTerms} />
                 <main className="flex-grow container mx-auto flex items-center justify-center">
                      <div className="bg-gray-800 p-8 rounded-lg shadow-2xl max-w-lg">
                         <h2 className="text-3xl font-bold text-red-500 mb-4 flex items-center justify-center">
@@ -203,7 +207,7 @@ const App: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-gray-900 text-gray-100 flex flex-col">
-            <Header />
+            <Header onOpenTerms={handleOpenTerms} />
             {!isOnline && (
                 <div className="bg-amber-600/90 text-white text-center px-4 py-2 text-sm font-medium shadow-md backdrop-blur-sm">
                     You are currently offline. AI features are disabled, but you can still edit variables manually.

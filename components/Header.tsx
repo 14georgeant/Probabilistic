@@ -1,6 +1,11 @@
+
 import React, { useEffect, useState } from 'react';
 
-const Header: React.FC = () => {
+interface HeaderProps {
+    onOpenTerms?: () => void;
+}
+
+const Header: React.FC<HeaderProps> = ({ onOpenTerms }) => {
     const [installPrompt, setInstallPrompt] = useState<any>(null);
 
     useEffect(() => {
@@ -57,6 +62,14 @@ const Header: React.FC = () => {
                                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M12 9.75V1.5m0 0L8.25 5.25M12 1.5 15.75 5.25" />
                                 </svg>
                                 Install App
+                            </button>
+                        )}
+                        {onOpenTerms && (
+                            <button 
+                                onClick={onOpenTerms}
+                                className="text-sm text-gray-400 hover:text-cyan-400 transition-colors"
+                            >
+                                Privacy & Terms
                             </button>
                         )}
                         <a href="mailto:gjoekabz98@gmail.com" className="text-sm text-gray-400 hover:text-cyan-400 transition-colors hidden sm:block">
