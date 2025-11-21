@@ -12,7 +12,9 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     define: {
       // This maps your existing 'process.env.API_KEY' code to the actual environment variable provided by Vercel/Netlify
-      'process.env.API_KEY': JSON.stringify(env.API_KEY)
+      'process.env.API_KEY': JSON.stringify(env.API_KEY),
+      // Polyfill process.env to avoid "process is not defined" errors in browser environments that access process directly
+      'process.env': {},
     },
     build: {
       chunkSizeWarningLimit: 1600

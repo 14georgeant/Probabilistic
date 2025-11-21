@@ -1,6 +1,7 @@
 
 import { GoogleGenAI, Type, Chat } from "@google/genai";
 import { Variable, AnalysisResult, Outcome, VariableState } from '../types';
+import { generateUUID } from '../utils';
 
 // Explicitly declare process for TypeScript since we are in a browser context
 // where Vite replaces process.env.API_KEY at build time.
@@ -390,13 +391,13 @@ ${JSON.stringify(variableSchema, null, 2)}
         }
 
         const variableWithIds: Variable = {
-            id: crypto.randomUUID(),
+            id: generateUUID(),
             name: parsed.name,
             states: parsed.states.map((state: Omit<VariableState, 'id'>) => ({
-                id: crypto.randomUUID(),
+                id: generateUUID(),
                 name: state.name,
                 outcomes: state.outcomes.map((outcome: Omit<Outcome, 'id'>) => ({
-                    id: crypto.randomUUID(),
+                    id: generateUUID(),
                     name: outcome.name,
                     probability: outcome.probability,
                 }))
@@ -481,13 +482,13 @@ export const analyzePriceAction = async (description: string, imageBase64?: stri
         }
 
         return {
-            id: crypto.randomUUID(),
+            id: generateUUID(),
             name: parsed.name,
             states: parsed.states.map((s: any) => ({
-                id: crypto.randomUUID(),
+                id: generateUUID(),
                 name: s.name,
                 outcomes: s.outcomes.map((o: any) => ({
-                    id: crypto.randomUUID(),
+                    id: generateUUID(),
                     name: o.name || 'Success',
                     probability: o.probability
                 }))
@@ -544,13 +545,13 @@ export const processBatchData = async (inputData: string): Promise<Variable[]> =
         }
 
         return parsed.map((v: any) => ({
-            id: crypto.randomUUID(),
+            id: generateUUID(),
             name: v.name,
             states: v.states.map((s: any) => ({
-                id: crypto.randomUUID(),
+                id: generateUUID(),
                 name: s.name,
                 outcomes: s.outcomes.map((o: any) => ({
-                    id: crypto.randomUUID(),
+                    id: generateUUID(),
                     name: o.name || 'Success',
                     probability: o.probability
                 }))

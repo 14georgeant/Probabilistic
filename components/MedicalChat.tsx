@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Chat, GenerateContentResponse } from "@google/genai";
 import { createMedicalChat } from '../services/geminiService';
+import { generateUUID } from '../utils';
 
 interface MedicalChatProps {
     isOpen: boolean;
@@ -77,7 +78,7 @@ const MedicalChat: React.FC<MedicalChatProps> = ({ isOpen, onClose }) => {
                 const msg = e.message || "Unknown error";
                 setInitError(msg);
                 setMessages(prev => [...prev, { 
-                     id: crypto.randomUUID(), 
+                     id: generateUUID(), 
                      role: 'model', 
                      text: `System Error: ${msg.includes("API_KEY") ? "API Key configuration missing." : "Unable to connect."} Please check your deployment settings.` 
                 }]);
@@ -88,7 +89,7 @@ const MedicalChat: React.FC<MedicalChatProps> = ({ isOpen, onClose }) => {
         }
 
         const userText = input;
-        const userMsg: Message = { id: crypto.randomUUID(), role: 'user', text: userText };
+        const userMsg: Message = { id: generateUUID(), role: 'user', text: userText };
         
         setMessages(prev => [...prev, userMsg]);
         setInput('');
@@ -98,7 +99,7 @@ const MedicalChat: React.FC<MedicalChatProps> = ({ isOpen, onClose }) => {
             const result = await activeSession.sendMessageStream({ message: userText });
             
             let fullText = "";
-            const currentMsgId = crypto.randomUUID();
+            const currentMsgId = generateUUID();
             let sources: { title: string; uri: string }[] = [];
             
             // Optimistic update for stream start
@@ -139,7 +140,7 @@ const MedicalChat: React.FC<MedicalChatProps> = ({ isOpen, onClose }) => {
         } catch (e: any) {
             console.error("Chat Error:", e);
             setMessages(prev => [...prev, { 
-                id: crypto.randomUUID(), 
+                id: generateUUID(), 
                 role: 'model', 
                 text: e.message?.includes("API_KEY") 
                     ? "Error: API Key not found. Please ensure the API_KEY environment variable is set."

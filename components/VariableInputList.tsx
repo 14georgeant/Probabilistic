@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Variable, VariableState, Outcome } from '../types';
 import { StateItem } from './StateItem';
+import { generateUUID } from '../utils';
 
 interface VariableInputListProps {
     variables: Variable[];
@@ -32,10 +33,10 @@ const VariableInputList: React.FC<VariableInputListProps> = ({ variables, setVar
     // --- CRUD Operations ---
     const addVariable = () => {
         const newVariable: Variable = {
-            id: crypto.randomUUID(),
+            id: generateUUID(),
             name: `Variable ${variables.length + 1}`,
             states: [
-                { id: crypto.randomUUID(), name: 'State A', outcomes: [{ id: crypto.randomUUID(), name: 'Success', probability: 50 }] }
+                { id: generateUUID(), name: 'State A', outcomes: [{ id: generateUUID(), name: 'Success', probability: 50 }] }
             ]
         };
         setVariables([...variables, newVariable]);
@@ -55,9 +56,9 @@ const VariableInputList: React.FC<VariableInputListProps> = ({ variables, setVar
         setVariables(variables.map(v => {
             if (v.id === variableId) {
                 const newState: VariableState = {
-                    id: crypto.randomUUID(),
+                    id: generateUUID(),
                     name: `State ${String.fromCharCode(65 + v.states.length)}`,
-                    outcomes: [{ id: crypto.randomUUID(), name: 'Success', probability: 50 }]
+                    outcomes: [{ id: generateUUID(), name: 'Success', probability: 50 }]
                 };
                 return { ...v, states: [...v.states, newState] };
             }
@@ -93,7 +94,7 @@ const VariableInputList: React.FC<VariableInputListProps> = ({ variables, setVar
                                 outcomes: [
                                     ...s.outcomes,
                                     {
-                                        id: crypto.randomUUID(),
+                                        id: generateUUID(),
                                         name: 'Success',
                                         probability: 50
                                     }
