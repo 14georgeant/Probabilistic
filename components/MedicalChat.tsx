@@ -48,7 +48,7 @@ const MedicalChat: React.FC<MedicalChatProps> = ({ isOpen, onClose }) => {
         if (isOpen) {
             const timer = setTimeout(() => {
                 inputRef.current?.focus();
-            }, 100);
+            }, 300);
             return () => clearTimeout(timer);
         }
     }, [isOpen]);
@@ -56,38 +56,57 @@ const MedicalChat: React.FC<MedicalChatProps> = ({ isOpen, onClose }) => {
     // Auto-scroll to bottom
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [messages]);
+    }, [messages, isLoading]);
 
     const handleSend = async () => {
-        if (!input.trim() || !chatSession || isLoading) return;
+        if (!input.trim() || isLoading) return;
+        
+        // Fail-safe: If chatSession is missing, try to create it one last time
+        let activeSession = chatSession;
+        if (!activeSession) {
+            try {
+                activeSession = createMedicalChat();
+                setChatSession(activeSession);
+                setInitError(false);
+            } catch (e) {
+                console.error("Recovery failed:", e);
+                setInitError(true);
+                setMessages(prev => [...prev, { 
+                     id: crypto.randomUUID(), 
+                     role: 'model', 
+                     text: "Configuration Error: Unable to initialize chat. Please check your API Key settings or network connection." 
+                }]);
+                return;
+            }
+        }
 
-        const userMsg: Message = { id: crypto.randomUUID(), role: 'user', text: input };
+        const userText = input;
+        const userMsg: Message = { id: crypto.randomUUID(), role: 'user', text: userText };
+        
         setMessages(prev => [...prev, userMsg]);
-        const currentInput = input; // Store for potential retry if needed (not impl here but good practice)
         setInput('');
         setIsLoading(true);
 
         try {
-            const result = await chatSession.sendMessageStream({ message: userMsg.text });
+            const result = await activeSession.sendMessageStream({ message: userText });
             
             let fullText = "";
             const currentMsgId = crypto.randomUUID();
             let sources: { title: string; uri: string }[] = [];
             
-            // Optimistic update for stream
-            setMessages(prev => [...prev, { id: currentMsgId, role: 'model', text: "..." }]);
+            // Optimistic update for stream start
+            setMessages(prev => [...prev, { id: currentMsgId, role: 'model', text: "" }]);
 
             for await (const chunk of result) {
                 const c = chunk as GenerateContentResponse;
                 if (c.text) {
                     fullText += c.text;
-                    // Functional update to ensure we don't lose state
                     setMessages(prev => prev.map(m => 
                         m.id === currentMsgId ? { ...m, text: fullText } : m
                     ));
                 }
                 
-                // Extract sources from grounding metadata if available in chunks
+                // Extract sources from grounding metadata
                 if (c.candidates?.[0]?.groundingMetadata?.groundingChunks) {
                     const chunks = c.candidates[0].groundingMetadata.groundingChunks;
                     const newSources: { title: string; uri: string }[] = [];
@@ -115,7 +134,6 @@ const MedicalChat: React.FC<MedicalChatProps> = ({ isOpen, onClose }) => {
             setMessages(prev => [...prev, { id: crypto.randomUUID(), role: 'model', text: "Error: Unable to connect to medical knowledge base. Please check your connection and try again." }]);
         } finally {
             setIsLoading(false);
-            // Refocus input after sending
             setTimeout(() => inputRef.current?.focus(), 50);
         }
     };
@@ -141,7 +159,7 @@ const MedicalChat: React.FC<MedicalChatProps> = ({ isOpen, onClose }) => {
                         <h3 className="font-bold text-white">Medical Helper AI</h3>
                         <span className="text-[10px] text-indigo-300 flex items-center gap-1">
                             <div className={`w-2 h-2 rounded-full ${initError ? 'bg-red-500' : 'bg-green-400 animate-pulse'}`}></div>
-                            {initError ? 'Connection Failed' : 'Connected to Medical Journals'}
+                            {initError ? 'Connection Issues' : 'Connected to Medical Journals'}
                         </span>
                     </div>
                 </div>
@@ -156,11 +174,11 @@ const MedicalChat: React.FC<MedicalChatProps> = ({ isOpen, onClose }) => {
                     <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                         <div className={`max-w-[85%] rounded-2xl p-4 ${
                             msg.role === 'user' 
-                            ? 'bg-indigo-600 text-white rounded-br-none' 
-                            : 'bg-gray-700 border border-gray-600 text-gray-100 rounded-bl-none'
+                            ? 'bg-indigo-600 text-white rounded-br-none shadow-lg' 
+                            : 'bg-gray-700 border border-gray-600 text-gray-100 rounded-bl-none shadow-md'
                         }`}>
                             <div className="prose prose-invert text-sm leading-relaxed whitespace-pre-wrap">
-                                {msg.text}
+                                {msg.text || <span className="animate-pulse">Thinking...</span>}
                             </div>
                             {msg.sources && msg.sources.length > 0 && (
                                 <div className="mt-3 pt-2 border-t border-gray-600/50">
@@ -192,19 +210,20 @@ const MedicalChat: React.FC<MedicalChatProps> = ({ isOpen, onClose }) => {
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={handleKeyDown}
-                        placeholder={initError ? "System Unavailable (Check API Key)" : "Ask about symptoms, drug interactions, or research..."}
+                        placeholder={initError ? "Type your message..." : "Ask about symptoms, drug interactions, or research..."}
                         className={`w-full bg-gray-800 border rounded-full py-3 px-5 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:border-transparent pr-12 shadow-inner ${
                             initError 
-                            ? 'border-red-500/50 focus:ring-red-500 cursor-not-allowed' 
+                            ? 'border-red-500/30 focus:ring-red-500/50' 
                             : 'border-indigo-500/30 focus:ring-indigo-500'
                         }`}
-                        disabled={isLoading || initError}
+                        disabled={isLoading}
                         autoComplete="off"
                     />
                     <button 
+                        type="button"
                         onClick={handleSend}
-                        disabled={isLoading || !input.trim() || initError}
-                        className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-indigo-600 hover:bg-indigo-500 text-white p-2 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-700"
+                        disabled={isLoading || !input.trim()}
+                        className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-indigo-600 hover:bg-indigo-500 text-white p-2 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-700 shadow-lg"
                     >
                         {isLoading ? (
                             <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
