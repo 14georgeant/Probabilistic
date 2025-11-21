@@ -67,14 +67,14 @@ const LinkAnalyzer: React.FC<LinkAnalyzerProps> = ({ onVariableGenerated, onSecu
     return (
         <div className="flex flex-col h-full">
             <p className="text-sm text-gray-400 mb-4">
-                Paste a link (e.g., <strong>YouTube video, X/Twitter post, Facebook page</strong>) and the AI will use Google Search to research it and suggest a relevant strategic variable.
+                Paste a link (e.g., <strong>Instagram, TikTok, YouTube, X/Twitter</strong>) and the AI will research it to suggest a relevant strategic variable.
             </p>
             <div className="flex gap-2 mb-4">
                 <input
                     type="url"
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
-                    placeholder={isOnline ? "https://twitter.com/user/status/..." : "Offline - Feature Unavailable"}
+                    placeholder={isOnline ? "https://instagram.com/p/..." : "Offline - Feature Unavailable"}
                     className={`flex-grow bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white placeholder-gray-400 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition ${!isOnline ? 'opacity-50 cursor-not-allowed' : ''}`}
                     disabled={isLoading || !isOnline}
                 />
@@ -98,7 +98,7 @@ const LinkAnalyzer: React.FC<LinkAnalyzerProps> = ({ onVariableGenerated, onSecu
                      <div className="flex flex-col items-center justify-center h-full text-center">
                         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500 mb-4"></div>
                         <p className="text-md font-semibold text-gray-300">Analyzing Content...</p>
-                        <p className="text-xs text-gray-400 mt-2">Searching for engagement & virality signals...</p>
+                        <p className="text-xs text-gray-400 mt-2">Evaluating engagement & virality...</p>
                     </div>
                 )}
                 {suggestedVariable && (

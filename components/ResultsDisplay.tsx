@@ -202,7 +202,7 @@ Analyzed via #ProbabilisticOutcomeAnalyzer #Strategy #AI`;
                     <button
                         onClick={handleCopySocial}
                         className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider bg-blue-900/30 hover:bg-blue-800/50 text-blue-300 hover:text-blue-200 py-2 px-3 rounded-md border border-blue-800/50 transition-all"
-                        title="Copy summary for Facebook/X"
+                        title="Copy summary for Facebook/X/Instagram"
                     >
                          {copyStatus === 'copied' ? (
                             <span className="text-green-400 flex items-center gap-1">

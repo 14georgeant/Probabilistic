@@ -182,7 +182,8 @@ URL provided by user: ${url}
 1. Use **Google Search** to find information about the link.
    - If it is a **Product/Business** page: Analyze the business model, market fit, or pricing strategy.
    - If it is a **YouTube Video**: Analyze the video content, title, and topic. Determine variables like "Thumbnail CTR Potential", "Viewer Retention Strategy", or "Topic Virality".
-   - If it is a **Social Media Post (X/Twitter/Facebook)**: Analyze the text/media. Determine variables like "Engagement Potential", "Hashtag Strategy", or "Controversy Level".
+   - If it is a **Instagram/TikTok/Visual Social** link: Analyze the visual aesthetics, current trend alignment, and caption hook. Determine variables like "Aesthetic Appeal", "Trend Relevance", or "Shareability".
+   - If it is a **Text Social (X/Twitter/Threads/LinkedIn)**: Analyze the copy, hashtags, and controversy level. Determine variables like "Engagement Potential", "Thread Hook Strength", or "Professional Relevance".
    - If it is a **News/Article**: Analyze the sentiment or impact of the event described.
 2. Based on your research, identify a single, core strategic variable relevant to this entity.
 3. Define 2-3 distinct states (strategies/options) for this variable.
