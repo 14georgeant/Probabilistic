@@ -5,7 +5,6 @@ import process from 'node:process';
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => {
   // Load env file based on `mode` in the current working directory.
-  // Set the third parameter to '' to load all env regardless of the `VITE_` prefix.
   const env = loadEnv(mode, process.cwd(), '');
   
   // Robustly capture the API key from various possible environment variable names
@@ -14,8 +13,8 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     define: {
-      // Define process.env as a single object containing the key.
-      // This prevents issues where 'process.env' is undefined or empty in browser contexts.
+      // Define process.env as a complete object.
+      // This ensures 'process.env.API_KEY' resolves correctly in the browser bundle.
       'process.env': JSON.stringify({
         API_KEY: apiKey,
         NODE_ENV: mode,

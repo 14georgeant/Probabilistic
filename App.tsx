@@ -23,7 +23,6 @@ const App: React.FC = () => {
     const [showSplash, setShowSplash] = useState(true);
 
     // App Mode: 'general', 'financial', 'health', 'medical', 'programmer'
-    // Load from localStorage if available
     const [appMode, setAppMode] = useState<'general' | 'financial' | 'health' | 'medical' | 'programmer'>(() => {
         const saved = localStorage.getItem('poa_app_mode');
         return (saved as 'general' | 'financial' | 'health' | 'medical' | 'programmer') || 'general';
@@ -82,7 +81,7 @@ const App: React.FC = () => {
     const [hasAcceptedTerms, setHasAcceptedTerms] = useState<boolean>(false);
     const [showTermsModal, setShowTermsModal] = useState<boolean>(true);
 
-    // Reset Key to force remounting of persistent components (Chat, Terminal)
+    // Reset Key to force remounting of persistent components
     const [resetKey, setResetKey] = useState<number>(0);
 
     // Persistence Effects
@@ -99,7 +98,6 @@ const App: React.FC = () => {
     }, [targetOutcomeName]);
 
     useEffect(() => {
-        // Reset active tab if not in financial mode but price_action was selected
         if (appMode !== 'financial' && activeTab === 'price_action') {
             setActiveTab('manual');
         }
@@ -254,7 +252,6 @@ const App: React.FC = () => {
         setGeminiInsights('');
     };
 
-    // Clears all variables for a fresh start
     const handleClearAll = useCallback(() => {
         if (window.confirm("Are you sure you want to remove all variables? This cannot be undone.")) {
             setVariables([]);
@@ -269,13 +266,12 @@ const App: React.FC = () => {
             setAnalysisResult(null);
             setGeminiInsights('');
             setError('');
-            setResetKey(prev => prev + 1); // Force remount of Chat/Terminal components
+            setResetKey(prev => prev + 1); 
             setIsMedicalChatOpen(false);
             setIsFinancialChatOpen(false);
             setIsProgrammerChatOpen(false);
             setIsHealthChatOpen(false);
             
-            // Automatically set the correct target outcome name based on the active mode
             let defaultTarget = 'Success';
             let defaultVarName = 'New Strategy Variable';
             
@@ -295,7 +291,6 @@ const App: React.FC = () => {
             
             setTargetOutcomeName(defaultTarget);
 
-            // Create fresh variables that MATCH the new target outcome
             setVariables([
                 {
                     id: generateUUID(),
@@ -314,11 +309,7 @@ const App: React.FC = () => {
     }, [appMode]);
 
     const handleAnalyze = useCallback(async () => {
-        if (!isOnline) {
-            setError('Connection Offline: Please connect to the internet to use the AI features.');
-            return;
-        }
-
+        // Removed strict 'isOnline' check to allow retries even if navigator reports offline erroneously.
         setIsLoading(true);
         setError('');
         setAnalysisResult(null);
@@ -355,7 +346,7 @@ const App: React.FC = () => {
                 const variable = variables[index];
                 for (const state of variable.states) {
                     const outcome = state.outcomes.find(o => o.name.toLowerCase() === targetOutcomeName.trim().toLowerCase());
-                    const outcomeProbability = outcome ? outcome.probability : 0; // Keep as 0-100 for now
+                    const outcomeProbability = outcome ? outcome.probability : 0;
 
                     generateCombinations(
                         index + 1,
@@ -380,7 +371,7 @@ const App: React.FC = () => {
             };
             setAnalysisResult(result);
             
-            // Gemini Insights with Mode Context
+            // Gemini Insights
             const insights = await generateAnalysisSummary(variables, result, appMode);
             setGeminiInsights(insights);
 
@@ -395,7 +386,7 @@ const App: React.FC = () => {
         } finally {
             setIsLoading(false);
         }
-    }, [variables, targetOutcomeName, isOnline, appMode]);
+    }, [variables, targetOutcomeName, appMode]);
     
     const handleAddVariable = (newVariable: Variable) => {
         setVariables(prevVariables => [...prevVariables, newVariable]);
@@ -407,7 +398,6 @@ const App: React.FC = () => {
         setActiveTab('manual');
     };
 
-    // Dynamic Theme Colors
     const getThemeColors = () => {
         switch (appMode) {
             case 'financial': return {
@@ -444,7 +434,7 @@ const App: React.FC = () => {
             };
             default: return {
                 text: 'text-cyan-400',
-                bg: 'bg-gray-700', // special case
+                bg: 'bg-gray-700', 
                 border: 'border-cyan-500',
                 hover: 'hover:text-cyan-300',
                 btn: 'bg-cyan-600 hover:bg-cyan-500',
@@ -475,15 +465,11 @@ const App: React.FC = () => {
                 onClick={onClick}
                 className={`
                     relative snap-center shrink-0 rounded-full text-sm font-bold transition-all duration-500 flex items-center gap-2 border-4 border-gray-900 select-none
-                    
-                    /* Mobile: Overlapping Stack */
                     px-5 py-3 -ml-5 first:ml-0
                     ${isActive 
                         ? `${activeColor} text-white shadow-2xl shadow-black/50 scale-110 z-30 translate-x-2` 
                         : 'bg-gray-800 text-gray-500 scale-90 z-0 opacity-70 hover:opacity-100 hover:scale-95 hover:z-20'
                     }
-                    
-                    /* Desktop: Standard Tabs */
                     md:ml-0 md:gap-2 md:px-4 md:py-2 md:border-0 md:scale-100 md:opacity-100 md:z-auto md:bg-transparent md:translate-x-0
                     ${isActive 
                         ? 'md:shadow-[0_0_15px_rgba(0,0,0,0.3)] md:translate-x-0' 
@@ -492,7 +478,6 @@ const App: React.FC = () => {
                 `}
             >
                 {icon}
-                {/* Hide label on inactive mobile items to save space, always show on active or desktop */}
                 <span className={`${isActive ? 'block' : 'hidden sm:block'} transition-all whitespace-nowrap`}>{label}</span>
                 
                 {mode === 'health' && <span className="absolute -top-1 -right-1 bg-white text-black text-[8px] px-1.5 py-0.5 rounded-full font-black tracking-tighter z-40 shadow">PRO</span>}
@@ -501,7 +486,6 @@ const App: React.FC = () => {
         );
     };
 
-    // RENDER SPLASH SCREEN
     if (showSplash) {
         return <DNAStartup onComplete={() => setShowSplash(false)} />;
     }
@@ -549,10 +533,8 @@ const App: React.FC = () => {
             
             <Header onOpenTerms={handleOpenTerms} onOpenTerminal={() => setIsTerminalOpen(!isTerminalOpen)} />
             
-            {/* Mode Switcher Bar - Slideshow Style on Mobile */}
             <div className="sticky top-0 z-20 bg-gray-900/95 backdrop-blur-md border-b border-gray-800 py-2 shadow-2xl">
                 <div className="container mx-auto relative group">
-                     {/* Gradient Fade Edges for Scroll Indication */}
                     <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-gray-900 to-transparent z-20 pointer-events-none md:hidden" />
                     <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-gray-900 to-transparent z-20 pointer-events-none md:hidden" />
 
@@ -596,7 +578,6 @@ const App: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Secondary Toolbar for Templates (Visible on Desktop or below slider on mobile) */}
                 <div className="container mx-auto px-4 pt-1 flex justify-center">
                     {appMode === 'financial' && (
                          <button onClick={handleLoadFinancialTemplate} className="text-xs text-emerald-400 hover:text-emerald-300 underline decoration-dotted">
@@ -728,7 +709,6 @@ const App: React.FC = () => {
                     </div>
                 </div>
 
-                {/* NotebookLM Sections */}
                 {appMode === 'financial' && (
                     <NotebookSection 
                         mode="financial"
@@ -781,7 +761,6 @@ const App: React.FC = () => {
                     />
                 )}
 
-                {/* Financial Mode Extras - Calendar */}
                 {appMode === 'financial' && (
                     <div className="mt-8">
                         <TradaysCalendar />
@@ -838,14 +817,14 @@ const App: React.FC = () => {
                     </button>
                     <button
                         onClick={handleAnalyze}
-                        disabled={isLoading || !isOnline}
+                        disabled={isLoading}
                         className={`w-full md:w-1/2 lg:w-1/3 font-bold py-3 px-6 rounded-lg text-lg shadow-lg transform transition-all duration-300 ease-in-out ${
-                            isLoading || !isOnline
+                            isLoading
                             ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
                             : `${theme.btn} text-white hover:scale-105`
                         }`}
                     >
-                        {isLoading ? 'Analyzing...' : !isOnline ? 'Offline - Connect to Internet for AI' : `Generate ${appMode === 'medical' ? 'Clinical Report' : appMode === 'health' ? 'Health Report' : appMode === 'financial' ? 'Financial Plan' : appMode === 'programmer' ? 'Engineering Plan' : 'Analysis'}`}
+                        {isLoading ? 'Analyzing...' : `Generate ${appMode === 'medical' ? 'Clinical Report' : appMode === 'health' ? 'Health Report' : appMode === 'financial' ? 'Financial Plan' : appMode === 'programmer' ? 'Engineering Plan' : 'Analysis'}`}
                     </button>
                 </div>
             </footer>

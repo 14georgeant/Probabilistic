@@ -18,11 +18,7 @@ const LinkAnalyzer: React.FC<LinkAnalyzerProps> = ({ onVariableGenerated, onSecu
     const [sources, setSources] = useState<{ title: string; uri: string }[]>([]);
 
     const handleAnalyzeClick = async () => {
-        if (!isOnline) {
-            setError('Offline Mode: Please connect to the internet to use this AI feature.');
-            return;
-        }
-
+        // Removed strict offline check to allow retries
         let urlToProcess = url.trim();
 
         if (!urlToProcess) {
@@ -30,7 +26,7 @@ const LinkAnalyzer: React.FC<LinkAnalyzerProps> = ({ onVariableGenerated, onSecu
             return;
         }
 
-        // Auto-prepend https:// if protocol is missing to allow simplified input (e.g. "google.com")
+        // Auto-prepend https:// if protocol is missing
         if (!/^https?:\/\//i.test(urlToProcess)) {
             urlToProcess = 'https://' + urlToProcess;
         }
@@ -112,22 +108,20 @@ const LinkAnalyzer: React.FC<LinkAnalyzerProps> = ({ onVariableGenerated, onSecu
                         setUrl(e.target.value);
                         if (error) setError('');
                     }}
-                    placeholder={isOnline ? placeholderText : "Offline - Feature Unavailable"}
+                    placeholder={placeholderText}
                     className={`flex-grow bg-gray-700 border rounded-md py-2 px-3 text-white placeholder-gray-400 focus:ring-2 transition ${
-                        !isOnline 
-                        ? 'opacity-50 cursor-not-allowed border-gray-600' 
-                        : error 
+                        error 
                         ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20'
                         : 'border-gray-600 focus:ring-2'
                     }`}
-                    disabled={isLoading || !isOnline}
+                    disabled={isLoading}
                     onKeyDown={(e) => e.key === 'Enter' && handleAnalyzeClick()}
                 />
                 <button
                     onClick={handleAnalyzeClick}
-                    disabled={isLoading || !isOnline}
+                    disabled={isLoading}
                     className={`text-white font-bold py-2 px-4 rounded-lg transition-colors ${
-                        isLoading || !isOnline 
+                        isLoading
                         ? 'bg-gray-600 cursor-not-allowed' 
                         : buttonClass
                     }`}

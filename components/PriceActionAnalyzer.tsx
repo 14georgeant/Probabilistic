@@ -39,10 +39,7 @@ const PriceActionAnalyzer: React.FC<PriceActionAnalyzerProps> = ({ onVariableGen
     };
 
     const handleAnalyze = async () => {
-        if (!isOnline) {
-            setError('Offline Mode: Connect to internet to analyze price action.');
-            return;
-        }
+        // Removed strict offline check to allow retries
         if (!description.trim() && !selectedImage) {
             setError('Input Required: Please provide a description OR upload a chart image to analyze.');
             return;
@@ -152,9 +149,9 @@ const PriceActionAnalyzer: React.FC<PriceActionAnalyzerProps> = ({ onVariableGen
 
             <button
                 onClick={handleAnalyze}
-                disabled={isLoading || !isOnline}
+                disabled={isLoading}
                 className={`w-full py-3 rounded-lg font-bold transition-all flex items-center justify-center gap-2 ${
-                    isLoading || !isOnline
+                    isLoading
                     ? 'bg-gray-600 cursor-not-allowed text-gray-400'
                     : 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg hover:shadow-emerald-500/20 hover:scale-[1.02] active:scale-[0.98]'
                 }`}

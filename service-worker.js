@@ -1,4 +1,4 @@
-const CACHE_NAME = 'poa-v2';
+const CACHE_NAME = 'poa-v3';
 
 // Install: Cache known static shell assets immediately
 self.addEventListener('install', (event) => {
@@ -24,6 +24,7 @@ self.addEventListener('activate', (event) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
           if (cacheName !== CACHE_NAME) {
+            console.log('Deleting old cache:', cacheName);
             return caches.delete(cacheName);
           }
         })
@@ -73,7 +74,6 @@ self.addEventListener('fetch', (event) => {
   }
 
   // 3. Handle Same-Origin Assets (JS, CSS, Images) -> Stale-While-Revalidate
-  // This ensures bundled JS files from Vite are cached as they are requested.
   if (url.origin === self.location.origin) {
     event.respondWith(
       caches.match(event.request).then((cachedResponse) => {
@@ -87,8 +87,7 @@ self.addEventListener('fetch', (event) => {
           }
           return networkResponse;
         }).catch((err) => {
-           // Network failed, that's okay if we have a cached response
-           // If no cache and network fails, we can't do much for assets
+           // Network failed, return cached if available
            return cachedResponse; 
         });
 
