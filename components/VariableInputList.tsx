@@ -160,11 +160,17 @@ const VariableInputList: React.FC<VariableInputListProps> = ({ variables, setVar
     const XIcon = () => (
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4"><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
     );
+    const WarningIcon = () => (
+        <svg className="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+    );
 
     return (
         <div className="space-y-8">
-            {variables.map((variable, vIndex) => (
-                <div key={variable.id} className="bg-gray-800 rounded-xl border border-gray-700 shadow-lg overflow-hidden group/var transition-all hover:border-gray-600">
+            {variables.map((variable, vIndex) => {
+                const isVarNameEmpty = !variable.name.trim();
+                
+                return (
+                <div key={variable.id} className={`bg-gray-800 rounded-xl border shadow-lg overflow-hidden group/var transition-all hover:border-gray-600 ${isVarNameEmpty ? 'border-red-500/40 ring-1 ring-red-500/20' : 'border-gray-700'}`}>
                     
                     {/* Variable Header */}
                     <div className="bg-gray-900/80 p-4 border-b border-gray-700 flex items-center gap-4">
@@ -189,13 +195,22 @@ const VariableInputList: React.FC<VariableInputListProps> = ({ variables, setVar
                         </div>
 
                         {/* Name Input */}
-                        <div className="flex-grow">
-                            <label className="text-[10px] uppercase tracking-wider font-bold text-gray-500 block mb-1">Variable Name</label>
+                        <div className="flex-grow relative">
+                            <div className="flex justify-between items-end mb-1">
+                                <label className={`text-[10px] uppercase tracking-wider font-bold block transition-colors ${isVarNameEmpty ? 'text-red-400' : 'text-gray-500'}`}>
+                                    Variable Name
+                                </label>
+                                {isVarNameEmpty && <span className="text-[10px] text-red-400 font-bold animate-pulse">Required</span>}
+                            </div>
                             <input
                                 type="text"
                                 value={variable.name}
                                 onChange={(e) => updateVariable(variable.id, { name: e.target.value })}
-                                className="bg-transparent text-xl font-bold text-white w-full focus:outline-none focus:border-b-2 focus:border-cyan-500/50 transition-all placeholder-gray-600 pb-1"
+                                className={`bg-transparent text-xl font-bold text-white w-full focus:outline-none border-b-2 transition-all placeholder-gray-600 pb-1 ${
+                                    isVarNameEmpty 
+                                    ? 'border-red-500/80 focus:border-red-500 placeholder-red-400/30' 
+                                    : 'border-transparent focus:border-cyan-500/50'
+                                }`}
                                 placeholder="e.g. Market Condition"
                             />
                         </div>
@@ -214,8 +229,10 @@ const VariableInputList: React.FC<VariableInputListProps> = ({ variables, setVar
 
                     {/* Variable Content (States) */}
                     <div className="p-4 bg-gray-800/50 space-y-4">
-                         {variable.states.map((state, sIndex) => (
-                             <div key={state.id} className="bg-gray-700/30 rounded-lg border border-gray-600/50 overflow-hidden transition-all hover:border-gray-500/50">
+                         {variable.states.map((state, sIndex) => {
+                             const isStateNameEmpty = !state.name.trim();
+                             return (
+                             <div key={state.id} className={`bg-gray-700/30 rounded-lg border overflow-hidden transition-all hover:border-gray-500/50 ${isStateNameEmpty ? 'border-red-500/30' : 'border-gray-600/50'}`}>
                                  
                                  {/* State Header */}
                                  <div className="flex items-center gap-3 p-3 bg-gray-700/50 border-b border-gray-600/50">
@@ -226,12 +243,23 @@ const VariableInputList: React.FC<VariableInputListProps> = ({ variables, setVar
                                      
                                      <span className="text-[10px] font-mono font-bold text-cyan-500/70 bg-cyan-900/20 px-2 py-1 rounded select-none uppercase tracking-wider">State {String.fromCharCode(65 + sIndex)}</span>
                                      
-                                     <input 
-                                         value={state.name} 
-                                         onChange={(e) => updateState(variable.id, state.id, { name: e.target.value })}
-                                         className="flex-grow bg-transparent font-medium text-gray-200 focus:outline-none border-b border-transparent focus:border-cyan-500/50 transition-all placeholder-gray-500" 
-                                         placeholder="State Name (e.g., High Growth)"
-                                     />
+                                     <div className="flex-grow relative">
+                                         <input 
+                                             value={state.name} 
+                                             onChange={(e) => updateState(variable.id, state.id, { name: e.target.value })}
+                                             className={`w-full bg-transparent font-medium text-gray-200 focus:outline-none border-b-2 transition-all placeholder-gray-500 ${
+                                                 isStateNameEmpty
+                                                 ? 'border-red-500/50 focus:border-red-500 placeholder-red-400/30'
+                                                 : 'border-transparent focus:border-cyan-500/50'
+                                             }`}
+                                             placeholder="State Name (e.g., High Growth)"
+                                         />
+                                          {isStateNameEmpty && (
+                                             <div className="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none">
+                                                 <WarningIcon />
+                                             </div>
+                                         )}
+                                     </div>
                                      
                                      <button onClick={() => removeState(variable.id, state.id)} className="text-xs text-gray-500 hover:text-red-400 hover:bg-gray-700 px-2 py-1 rounded transition-colors">
                                          Remove
@@ -241,16 +269,25 @@ const VariableInputList: React.FC<VariableInputListProps> = ({ variables, setVar
                                  {/* Outcomes Area */}
                                  <div className="p-3 bg-black/10">
                                      <div className="space-y-2">
-                                         {state.outcomes.map((outcome) => (
-                                             <div key={outcome.id} className="flex items-center gap-3 bg-gray-800/50 p-2 rounded border border-transparent hover:border-gray-600 transition-all group/outcome">
+                                         {state.outcomes.map((outcome) => {
+                                             const isOutcomeNameEmpty = !outcome.name.trim();
+                                             return (
+                                             <div key={outcome.id} className={`flex items-center gap-3 bg-gray-800/50 p-2 rounded border transition-all group/outcome ${isOutcomeNameEmpty ? 'border-red-500/30 bg-red-900/5' : 'border-transparent hover:border-gray-600'}`}>
                                                  {/* Outcome Name */}
-                                                 <div className="flex-grow">
+                                                 <div className="flex-grow relative">
                                                      <input 
                                                          value={outcome.name}
                                                          onChange={(e) => updateOutcome(variable.id, state.id, outcome.id, { name: e.target.value })}
-                                                         className="w-full bg-transparent text-sm text-gray-300 placeholder-gray-600 focus:outline-none focus:text-white transition-colors"
+                                                         className={`w-full bg-transparent text-sm transition-colors focus:outline-none ${
+                                                            isOutcomeNameEmpty ? 'text-red-300 placeholder-red-400/50' : 'text-gray-300 placeholder-gray-600 focus:text-white'
+                                                         }`}
                                                          placeholder="Outcome Name"
                                                      />
+                                                     {isOutcomeNameEmpty && (
+                                                         <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" title="Required">
+                                                            <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>
+                                                         </div>
+                                                     )}
                                                  </div>
 
                                                  {/* Visual Separator */}
@@ -285,7 +322,8 @@ const VariableInputList: React.FC<VariableInputListProps> = ({ variables, setVar
                                                      <XIcon />
                                                  </button>
                                              </div>
-                                         ))}
+                                             );
+                                         })}
                                      </div>
                                      
                                      <button 
@@ -296,7 +334,8 @@ const VariableInputList: React.FC<VariableInputListProps> = ({ variables, setVar
                                      </button>
                                  </div>
                              </div>
-                         ))}
+                             );
+                         })}
                          
                          <button 
                             onClick={() => addState(variable.id)} 
@@ -306,7 +345,8 @@ const VariableInputList: React.FC<VariableInputListProps> = ({ variables, setVar
                          </button>
                     </div>
                 </div>
-            ))}
+                );
+            })}
             
             {/* Add Variable Button */}
             <button 

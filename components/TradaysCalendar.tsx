@@ -3,12 +3,10 @@ import React, { useEffect, useRef, useState, memo } from 'react';
 declare global {
     interface Window {
         TradingView: any;
-        TradaysCalendar: any;
     }
 }
 
 const TradaysCalendar: React.FC = () => {
-    const calendarContainerRef = useRef<HTMLDivElement>(null);
     const financeWidgetRef = useRef<HTMLDivElement>(null);
     const [selectedSymbol, setSelectedSymbol] = useState('EURUSD');
     const [customSymbol, setCustomSymbol] = useState('');
@@ -16,96 +14,7 @@ const TradaysCalendar: React.FC = () => {
     // Unique ID for the TradingView container to avoid conflicts
     const chartContainerId = useRef(`tradingview_${Math.random().toString(36).substring(7)}`);
 
-    // 1. Economic Calendar (Official Tradays Widget)
-    useEffect(() => {
-        const container = calendarContainerRef.current;
-        if (!container) return;
-
-        // Clear container to prevent duplicates and stale widgets
-        container.innerHTML = '';
-
-        // Generate a unique ID for this specific instance
-        const widgetId = `tradays_${Math.random().toString(36).substring(7)}`;
-
-        // Create a div with a specific ID for the widget to bind to
-        const widgetDiv = document.createElement('div');
-        widgetDiv.id = widgetId;
-        widgetDiv.style.width = '100%';
-        widgetDiv.style.height = '600px';
-        
-        // Apply custom styling for better visual integration as requested
-        widgetDiv.style.backgroundColor = '#374151'; // Custom background (gray-700)
-        widgetDiv.style.borderRadius = '8px'; // Rounded corners
-        widgetDiv.style.border = '1px solid #4B5563'; // Subtle border (gray-600)
-        widgetDiv.style.overflow = 'hidden'; // Ensure content respects border radius
-        widgetDiv.style.position = 'relative';
-        
-        container.appendChild(widgetDiv);
-
-        const scriptSrc = 'https://www.tradays.com/c/js/widgets/calendar/widget.js?v=13';
-
-        const initWidget = () => {
-            // Ensure the container still exists in the DOM
-            if (!document.getElementById(widgetId)) return;
-
-            if (window.TradaysCalendar) {
-                try {
-                    new window.TradaysCalendar({
-                        "container": widgetId,
-                        "width": "100%",
-                        "height": "600",
-                        "mode": "2",
-                        "theme": 1, // 1 = Dark Mode
-                        "dateFormat": "MDY",
-                        "lang": "en"
-                    });
-                } catch (e) {
-                    console.error("Tradays Calendar Init Error:", e);
-                }
-            }
-        };
-
-        // Robust script loading strategy
-        let script = document.querySelector(`script[src="${scriptSrc}"]`) as HTMLScriptElement;
-        let intervalId: any;
-
-        if (!script) {
-            script = document.createElement('script');
-            script.src = scriptSrc;
-            script.async = true;
-            script.type = 'text/javascript';
-            document.head.appendChild(script);
-        }
-
-        // If global object exists, init immediately
-        if (window.TradaysCalendar) {
-            initWidget();
-        } else {
-            // Listen for load
-            const handleLoad = () => initWidget();
-            script.addEventListener('load', handleLoad);
-            
-            // Fallback: Poll in case script is already loaded but we missed the event
-            // or if the global object takes a moment to populate
-            intervalId = setInterval(() => {
-                if (window.TradaysCalendar) {
-                    initWidget();
-                    clearInterval(intervalId);
-                    script.removeEventListener('load', handleLoad);
-                }
-            }, 200);
-
-            // Stop polling after 10 seconds to prevent infinite check
-            setTimeout(() => clearInterval(intervalId), 10000);
-
-            return () => {
-                script.removeEventListener('load', handleLoad);
-                clearInterval(intervalId);
-            };
-        }
-    }, []);
-
-    // 2. Google Finance Interface Replacement (Market Overview Widget)
+    // 1. Google Finance Interface Replacement (Market Overview Widget)
     useEffect(() => {
         if (financeWidgetRef.current) {
             financeWidgetRef.current.innerHTML = '';
@@ -177,7 +86,7 @@ const TradaysCalendar: React.FC = () => {
         }
     }, []);
 
-    // 3. TradingView Widget Injection (Advanced Chart)
+    // 2. TradingView Widget Injection (Advanced Chart)
     useEffect(() => {
         const scriptId = 'tradingview-widget-script';
         
@@ -250,22 +159,6 @@ const TradaysCalendar: React.FC = () => {
     return (
         <div className="space-y-8 w-full animate-in fade-in slide-in-from-bottom-8 duration-700">
             
-            {/* Economic Calendar Section */}
-            <div className="bg-gray-900 rounded-xl border border-gray-700 shadow-2xl overflow-hidden flex flex-col">
-                <div className="p-4 border-b border-gray-800 bg-gray-800/80 backdrop-blur-sm flex justify-between items-center">
-                    <h3 className="text-lg font-bold text-emerald-400 flex items-center gap-2">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                        Economic Calendar
-                    </h3>
-                    <div className="text-xs text-gray-500">Official Tradays Data</div>
-                </div>
-                
-                {/* Calendar Container */}
-                <div className="relative min-h-[600px] bg-gray-900 flex justify-center">
-                    <div ref={calendarContainerRef} className="w-full h-full"></div>
-                </div>
-            </div>
-
             {/* Google Finance Interface Section */}
             <div className="bg-gray-900 rounded-xl border border-gray-700 shadow-2xl overflow-hidden flex flex-col relative group">
                 <div className="absolute top-0 left-0 right-0 h-12 bg-gradient-to-b from-gray-900 to-transparent z-10 pointer-events-none"></div>

@@ -240,6 +240,7 @@ export const analyzeLinkForVariables = async (
         - If it's a **Company/Stock**: Variable name should be related to "Fundamental Strength" or "Market Sentiment". States: "Buy Signal", "Hold", "Sell".
         - If it's a **Crypto/Asset**: Variable name: "Volatility" or "Adoption Rate". States: "High Growth", "Correction", "Stagnation".
         - If it's **News**: Variable name: "Economic Impact". States: "Positive Shock", "Negative Shock", "Neutral".
+        - If it's **General Financial Info**: Analyze the core financial concept. Variable name: "Key Financial Driver".
         - Estimate probabilities based on the sentiment of the content.
         `;
     } else if (mode === 'health') {
@@ -249,6 +250,7 @@ export const analyzeLinkForVariables = async (
         - If it's a **Recipe/Food**: Variable name: "Dietary Impact" or "Macro Profile". States: "High Protein/Anabolic", "High Calorie/Bulking", "Clean/Maintenance".
         - If it's a **Workout Video**: Variable name: "Training Stimulus". States: "Hypertrophy (Muscle Gain)", "Endurance", "Active Recovery".
         - If it's **Supplement/Gear**: Variable name: "Performance Aid". States: "Effective", "Placebo/Low Impact".
+        - If it's **General Health/Fitness Content**: Analyze the key factor influencing performance or health. Variable name examples: "Sleep Quality", "Stress Management", "Recovery".
         `;
     } else if (mode === 'medical') {
         instructions = `
@@ -256,6 +258,7 @@ export const analyzeLinkForVariables = async (
         Analyze the URL (e.g., PubMed, Medical Journal) for clinical study results or symptom analysis.
         - If it's a **Clinical Study**: Variable name: "Treatment Efficacy" or "Drug Response". States: "Effective (High Conf)", "Inconclusive", "Adverse Effects".
         - If it's **Symptom Info**: Variable name: "Disease Probability". States: "High Likelihood", "Low Likelihood".
+        - If it's **General Medical Info**: Extract the most relevant prognostic factor or risk variable.
         - PRIORITIZE ACCURACY based on the text.
         `;
     } else {
@@ -265,6 +268,7 @@ export const analyzeLinkForVariables = async (
         - If it is a **YouTube Video**: Analyze "Virality Potential" or "Content Quality".
         - If it is a **Instagram/TikTok**: Analyze "Aesthetic Appeal", "Trend Relevance", or "Visual Hook".
         - If it is a **Social Post (X/LinkedIn)**: Analyze "Engagement Potential" or "Copy Strength".
+        - If it is **Any Other Content**: Analyze the main topic and propose a relevant strategic variable with states representing success/failure scenarios.
         `;
     }
 

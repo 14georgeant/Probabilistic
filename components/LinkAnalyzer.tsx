@@ -22,14 +22,22 @@ const LinkAnalyzer: React.FC<LinkAnalyzerProps> = ({ onVariableGenerated, onSecu
             return;
         }
 
-        if (!url.trim()) {
+        let urlToProcess = url.trim();
+
+        if (!urlToProcess) {
             setError('Please enter a URL.');
             return;
         }
+
+        // Auto-prepend https:// if protocol is missing to allow simplified input (e.g. "google.com")
+        if (!/^https?:\/\//i.test(urlToProcess)) {
+            urlToProcess = 'https://' + urlToProcess;
+        }
+
         try {
-            new URL(url);
+            new URL(urlToProcess);
         } catch (e) {
-            setError('Please enter a valid URL format (e.g., https://example.com).');
+            setError('Please enter a valid URL format (e.g., example.com or https://example.com).');
             return;
         }
 
@@ -39,7 +47,7 @@ const LinkAnalyzer: React.FC<LinkAnalyzerProps> = ({ onVariableGenerated, onSecu
         setSources([]);
 
         try {
-            const { variable, sources } = await analyzeLinkForVariables(url, mode as 'general' | 'financial' | 'health' | 'medical');
+            const { variable, sources } = await analyzeLinkForVariables(urlToProcess, mode as 'general' | 'financial' | 'health' | 'medical');
             setSuggestedVariable(variable);
             setSources(sources);
         } catch (e) {
@@ -63,23 +71,23 @@ const LinkAnalyzer: React.FC<LinkAnalyzerProps> = ({ onVariableGenerated, onSecu
         }
     };
 
-    let placeholderText = "https://instagram.com/p/...";
+    let placeholderText = "instagram.com/p/...";
     let instructionsText = <span>Paste a link (e.g., <strong>Instagram, TikTok, YouTube</strong>) and the AI will research it to suggest a relevant strategic variable.</span>;
     let buttonClass = "bg-cyan-600 hover:bg-cyan-500";
     let textClass = "text-cyan-300";
 
     if (mode === 'financial') {
-        placeholderText = "https://bloomberg.com/news/...";
+        placeholderText = "bloomberg.com/news/...";
         instructionsText = <span>Paste a link to a <strong>Stock, Asset, or Economic News</strong> and the AI will analyze its impact on your portfolio.</span>;
         buttonClass = "bg-emerald-600 hover:bg-emerald-500";
         textClass = "text-emerald-300";
     } else if (mode === 'health') {
-        placeholderText = "https://youtube.com/watch?v=workout...";
+        placeholderText = "youtube.com/watch?v=workout...";
         instructionsText = <span>Paste a link to a <strong>Workout, Diet Plan, or Supplement</strong> and the AI will analyze its impact on your performance.</span>;
         buttonClass = "bg-rose-600 hover:bg-rose-500";
         textClass = "text-rose-300";
     } else if (mode === 'medical') {
-        placeholderText = "https://pubmed.ncbi.nlm.nih.gov/...";
+        placeholderText = "pubmed.ncbi.nlm.nih.gov/...";
         instructionsText = <span>Paste a link to a <strong>Clinical Study (PubMed), Journal Article, or Disease Profile</strong> and the AI will extract the prognostic factors.</span>;
         buttonClass = "bg-indigo-600 hover:bg-indigo-500";
         textClass = "text-indigo-300";
