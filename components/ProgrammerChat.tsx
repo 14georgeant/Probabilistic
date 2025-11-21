@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Chat, GenerateContentResponse } from "@google/genai";
-import { createProgrammerChat } from '../services/geminiService';
+import { createProgrammerChat, formatGenAIError } from '../services/geminiService';
 import { generateUUID } from '../utils';
 
 interface ProgrammerChatProps {
@@ -66,7 +66,13 @@ const ProgrammerChat: React.FC<ProgrammerChatProps> = ({ isOpen, onClose }) => {
     const sendMessageWithRetry = async (session: Chat, text: string, retries = 1): Promise<AsyncIterable<GenerateContentResponse>> => {
         try {
             return await session.sendMessageStream({ message: text });
-        } catch (error) {
+        } catch (error: any) {
+            // CRITICAL: Do not retry if the error indicates a leaked key (403 Permission Denied)
+            // Retrying blocked requests just adds noise/latency.
+            if (error.message?.includes('403') || error.message?.includes('leaked') || error.message?.includes('API key') || error.message?.includes('PERMISSION_DENIED')) {
+                throw error;
+            }
+
             if (retries > 0) {
                 console.log("Retrying chat connection...");
                 // Recreate session
@@ -94,7 +100,7 @@ const ProgrammerChat: React.FC<ProgrammerChatProps> = ({ isOpen, onClose }) => {
                 setMessages(prev => [...prev, { 
                      id: generateUUID(), 
                      role: 'model', 
-                     text: `System Error: ${msg.includes("API_KEY") ? "API Key configuration missing." : "Unable to connect."} Please check your deployment settings.` 
+                     text: formatGenAIError(e)
                 }]);
                 setInput(''); 
                 return;
@@ -152,12 +158,11 @@ const ProgrammerChat: React.FC<ProgrammerChatProps> = ({ isOpen, onClose }) => {
 
         } catch (e: any) {
             console.error("Chat Error:", e);
+            const friendlyError = formatGenAIError(e);
             setMessages(prev => [...prev, { 
                 id: generateUUID(), 
                 role: 'model', 
-                text: e.message?.includes("API_KEY") 
-                    ? "Error: API Key not found. Please ensure the API_KEY environment variable is set."
-                    : "Connection unstable. I've refreshed the knowledge base connection. Please try asking again." 
+                text: friendlyError
             }]);
             // If error occurred, force session recreation next time
             setChatSession(null);

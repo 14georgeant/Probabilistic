@@ -599,7 +599,7 @@ const App: React.FC = () => {
                     <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-gray-900 to-transparent z-20 pointer-events-none md:hidden" />
                     <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-gray-900 to-transparent z-20 pointer-events-none md:hidden" />
 
-                    {/* Navigation Arrows */}
+                    {/* Navigation Arrows - Removed md:hidden to allow easier nav on large screens if list is long */}
                     <button 
                         onClick={() => navigateMode('left')}
                         className="absolute left-1 top-1/2 -translate-y-1/2 z-30 bg-gray-800/90 p-1.5 rounded-full text-white shadow-lg border border-gray-700 active:scale-95 transition-all opacity-70 hover:opacity-100"

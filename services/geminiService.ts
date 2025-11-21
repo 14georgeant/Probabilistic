@@ -37,9 +37,15 @@ export const formatGenAIError = (error: unknown): string => {
             return msg;
         }
 
-        // API Key / Auth
-        if (msg.includes('API key') || msg.includes('API_KEY') || msg.includes('401') || msg.includes('403')) {
-             return "Authentication Error: The API Key is missing, invalid, or not configured correctly. Please check your environment settings.";
+        // CRITICAL: API Key Leaked or Permission Denied
+        // Matches the nested JSON error message structure provided by the API
+        if (msg.includes('leaked') || (msg.includes('403') && (msg.includes('API key') || msg.includes('PERMISSION_DENIED')))) {
+             return "CRITICAL SECURITY ALERT: Your API Key has been reported as leaked and blocked by Google. Requests are blocked. Please go to Google AI Studio, revoke this key, and generate a new one immediately.";
+        }
+
+        // API Key / Auth (General)
+        if (msg.includes('API key') || msg.includes('API_KEY') || msg.includes('401')) {
+             return "Authentication Error: The API Key is missing or invalid. Please check your environment settings.";
         }
         
         // Rate Limiting
@@ -67,7 +73,7 @@ export const formatGenAIError = (error: unknown): string => {
              return "Data Processing Error: The AI returned an invalid format. Please try the request again.";
         }
         
-        return `System Error: ${msg}`;
+        return `System Error: ${msg.slice(0, 100)}...`;
     }
     return "An unexpected system error occurred. Please try again.";
 };

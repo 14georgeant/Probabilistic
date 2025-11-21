@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Chat, GenerateContentResponse } from "@google/genai";
-import { createFinancialChat } from '../services/geminiService';
+import { createFinancialChat, formatGenAIError } from '../services/geminiService';
 import { generateUUID } from '../utils';
 
 interface FinancialChatProps {
@@ -79,7 +79,7 @@ const FinancialChat: React.FC<FinancialChatProps> = ({ isOpen, onClose }) => {
                 setMessages(prev => [...prev, { 
                      id: generateUUID(), 
                      role: 'model', 
-                     text: `System Error: ${msg.includes("API_KEY") ? "API Key configuration missing." : "Unable to connect."} Please check your deployment settings.` 
+                     text: formatGenAIError(e)
                 }]);
                 setInput(''); 
                 return;
@@ -136,12 +136,11 @@ const FinancialChat: React.FC<FinancialChatProps> = ({ isOpen, onClose }) => {
 
         } catch (e: any) {
             console.error("Chat Error:", e);
+            const friendlyError = formatGenAIError(e);
             setMessages(prev => [...prev, { 
                 id: generateUUID(), 
                 role: 'model', 
-                text: e.message?.includes("API_KEY") 
-                    ? "Error: API Key not found. Please ensure the API_KEY environment variable is set."
-                    : "Error: Unable to connect to financial knowledge base. Please check your network connection." 
+                text: friendlyError
             }]);
         } finally {
             setIsLoading(false);

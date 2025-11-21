@@ -19,8 +19,26 @@ const HelixIcon = ({ className = "w-6 h-6" }: { className?: string }) => (
 
 const Header: React.FC<HeaderProps> = ({ onOpenTerms, onOpenTerminal }) => {
     const [installPrompt, setInstallPrompt] = useState<any>(null);
+    const [isStandalone, setIsStandalone] = useState(false);
+    const [isIOS, setIsIOS] = useState(false);
 
     useEffect(() => {
+        // Check if running in standalone mode (already installed)
+        const checkStandalone = () => {
+            const isStandaloneMode = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone;
+            setIsStandalone(!!isStandaloneMode);
+        };
+        
+        // Check for iOS
+        const checkIOS = () => {
+            const ios = /iPad|iPhone|iPod/.test(navigator.userAgent) && !(window as any).MSStream;
+            setIsIOS(ios);
+        };
+
+        checkStandalone();
+        checkIOS();
+        window.addEventListener('resize', checkStandalone);
+
         const handleBeforeInstallPrompt = (e: Event) => {
             // Prevent the mini-infobar from appearing on mobile
             e.preventDefault();
@@ -32,25 +50,28 @@ const Header: React.FC<HeaderProps> = ({ onOpenTerms, onOpenTerminal }) => {
 
         return () => {
             window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+            window.removeEventListener('resize', checkStandalone);
         };
     }, []);
 
     const handleInstallClick = () => {
-        if (!installPrompt) return;
-
-        // Show the install prompt
-        installPrompt.prompt();
-
-        // Wait for the user to respond to the prompt
-        installPrompt.userChoice.then((choiceResult: { outcome: string }) => {
-            if (choiceResult.outcome === 'accepted') {
-                console.log('User accepted the install prompt');
-            } else {
-                console.log('User dismissed the install prompt');
-            }
-            setInstallPrompt(null);
-        });
+        if (installPrompt) {
+            installPrompt.prompt();
+            installPrompt.userChoice.then((choiceResult: { outcome: string }) => {
+                if (choiceResult.outcome === 'accepted') {
+                    console.log('User accepted the install prompt');
+                }
+                setInstallPrompt(null);
+            });
+        } else if (isIOS) {
+            alert("To install this app on your iPhone/iPad:\n\n1. Tap the Share button below ⬇️\n2. Scroll down and tap 'Add to Home Screen' ⊞");
+        } else {
+             alert("To install this app:\n\nDesktop: Look for the install icon (+) in your address bar.\nMobile: Tap your browser menu and select 'Add to Home Screen'.");
+        }
     };
+
+    // Show button if not standalone. If we have a prompt OR it's iOS, or even fallback for manual instructions.
+    const showInstallButton = !isStandalone;
 
     return (
         <header className="bg-gray-800 shadow-lg border-b border-gray-700 relative z-30">
@@ -80,17 +101,16 @@ const Header: React.FC<HeaderProps> = ({ onOpenTerms, onOpenTerminal }) => {
                             </button>
                         )}
 
-                        {installPrompt && (
+                        {showInstallButton && (
                             <button 
                                 onClick={handleInstallClick}
-                                className="bg-gradient-to-br from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white p-2 rounded-full transition-all shadow-lg hover:shadow-cyan-500/30 group relative"
+                                className="flex items-center gap-2 bg-gradient-to-br from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white py-2 px-3 md:px-4 rounded-full transition-all shadow-lg hover:shadow-cyan-500/30 group relative"
                                 aria-label="Install App"
                                 title="Download / Install App"
                             >
-                                <HelixIcon className="w-6 h-6 animate-spin-slow group-hover:rotate-180 transition-transform duration-700" />
-                                <span className="absolute top-full right-0 mt-2 bg-gray-900 text-xs px-2 py-1 rounded text-white opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none border border-gray-700">
-                                    Download App
-                                </span>
+                                <HelixIcon className="w-5 h-5 animate-spin-slow group-hover:rotate-180 transition-transform duration-700" />
+                                <span className="hidden md:block text-sm font-bold">Install App</span>
+                                <span className="md:hidden text-xs font-bold">Install</span>
                             </button>
                         )}
                         {onOpenTerms && (
