@@ -265,3 +265,113 @@ ${JSON.stringify(variableSchema, null, 2)}
         throw new Error("Failed to generate a variable from the link. Please ensure the URL is valid and accessible via search.");
     }
 };
+
+// New function for Batch CLI processing
+export const processBatchData = async (inputData: string): Promise<Variable[]> => {
+    // Schema definition for array of variables
+    const variableListSchema = {
+        type: Type.ARRAY,
+        items: variableSchema
+    };
+
+    const prompt = `
+    You are a High-Performance Data Processor CLI.
+    
+    Your task is to analyze the user's raw input data (which may be CSV, JSON, log text, or natural language description) and extract strategic variables for a Probabilistic Outcome Analyzer.
+    
+    **INPUT DATA:**
+    ${inputData}
+    
+    **INSTRUCTIONS:**
+    1. Identify distinct variables or factors in the data that influence an outcome.
+    2. For each variable, identify the different states or categories it can take.
+    3. Estimate a success probability (0-100) for each state based on the data context or general knowledge if data is sparse.
+    4. Return a list of Variable objects strictly adhering to the JSON schema.
+    `;
+
+    try {
+        const ai = getAiClient();
+        const response = await ai.models.generateContent({
+            model, // gemini-2.5-flash handles large context
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: variableListSchema
+            }
+        });
+
+        const text = response.text;
+        if (!text) throw new Error("No response from AI.");
+        
+        const parsed = JSON.parse(text);
+        
+        // Security Check
+        const textToCheck = parsed.map((v: any) => `${v.name} ${v.states.map((s: any) => s.name).join(' ')}`).join(' ');
+        if (await checkForMaliciousIntent(textToCheck)) {
+            throw new Error("SECURITY_RISK_DETECTED: Malicious content in batch data.");
+        }
+
+        // Hydrate with UUIDs
+        return parsed.map((v: any) => ({
+            id: crypto.randomUUID(),
+            name: v.name,
+            states: v.states.map((s: any) => ({
+                id: crypto.randomUUID(),
+                name: s.name,
+                outcomes: s.outcomes.map((o: any) => ({
+                    id: crypto.randomUUID(),
+                    name: o.name || 'Success',
+                    probability: o.probability
+                }))
+            }))
+        }));
+
+    } catch (error) {
+        console.error("Batch processing error:", error);
+        if (error instanceof Error && error.message.startsWith('SECURITY_RISK_DETECTED')) throw error;
+        throw new Error("Failed to process batch data.");
+    }
+};
+
+export const generateCppAdaptivityCode = async (variables: Variable[]): Promise<string> => {
+    const varSchema = variables.map(v => ({
+        name: v.name,
+        states: v.states.map(s => ({ name: s.name, prob: s.outcomes[0]?.probability || 0 }))
+    }));
+
+    const prompt = `
+    You are an expert embedded systems engineer.
+    Create a high-performance C++17 class named 'AdaptiveOptimizer' that models the following probabilistic decision variables:
+    ${JSON.stringify(varSchema, null, 2)}
+
+    REQUIREMENTS:
+    1.  **Data Structure**: Use std::vector and struct to efficiently store variables and their states.
+    2.  **Adaptivity**: Implement a method \`void updateProbability(std::string variableName, std::string stateName, double newProbability)\` to allow the system to adapt to runtime sensor data or market changes.
+    3.  **Optimization**: Implement \`double calculateOptimalStrategy()\` which finds the combination of states with the highest joint probability and prints it.
+    4.  **Demo**: Include a \`main()\` function that:
+        - Instantiates the model.
+        - Prints the initial optimal path.
+        - Simulates a runtime change (e.g., "Sensor X detected efficiency drop").
+        - Calls \`updateProbability\`.
+        - Prints the NEW, adapted optimal path to demonstrate adaptivity.
+    
+    OUTPUT FORMAT:
+    Return ONLY the valid C++ source code. Do not include markdown blocks (like \`\`\`cpp) or explanations.
+    `;
+
+    try {
+        const ai = getAiClient();
+        const response = await ai.models.generateContent({
+            model,
+            contents: prompt
+        });
+        
+        let text = response.text ?? "// Error generating C++ code.";
+        // Clean up any potential markdown formatting the model might add despite instructions
+        text = text.replace(/```cpp/g, '').replace(/```/g, '').trim();
+        return text;
+
+    } catch (e) {
+        return "// Error generating C++ code: " + (e instanceof Error ? e.message : "Unknown error");
+    }
+};

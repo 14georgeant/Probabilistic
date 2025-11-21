@@ -3,9 +3,10 @@ import React, { useEffect, useState } from 'react';
 
 interface HeaderProps {
     onOpenTerms?: () => void;
+    onOpenTerminal?: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ onOpenTerms }) => {
+const Header: React.FC<HeaderProps> = ({ onOpenTerms, onOpenTerminal }) => {
     const [installPrompt, setInstallPrompt] = useState<any>(null);
 
     useEffect(() => {
@@ -53,6 +54,15 @@ const Header: React.FC<HeaderProps> = ({ onOpenTerms }) => {
                     </div>
                     
                     <div className="flex items-center gap-4">
+                        {onOpenTerminal && (
+                            <button 
+                                onClick={onOpenTerminal}
+                                className="text-sm font-mono bg-gray-900 hover:bg-black text-green-400 border border-green-500/50 px-3 py-1.5 rounded transition-colors hidden sm:block"
+                            >
+                                &gt;_ Gemini CLI
+                            </button>
+                        )}
+
                         {installPrompt && (
                             <button 
                                 onClick={handleInstallClick}

@@ -1,4 +1,3 @@
-
 import React, { useState, useCallback, useEffect } from 'react';
 import { Variable, AnalysisResult } from './types';
 import Header from './components/Header';
@@ -7,6 +6,7 @@ import ResultsDisplay from './components/ResultsDisplay';
 import { generateAnalysisSummary } from './services/geminiService';
 import LinkAnalyzer from './components/LinkAnalyzer';
 import TermsModal from './components/TermsModal';
+import GeminiTerminal from './components/GeminiTerminal';
 
 const App: React.FC = () => {
     const [variables, setVariables] = useState<Variable[]>([
@@ -35,6 +35,7 @@ const App: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'manual' | 'ai'>('manual');
     const [isBlocked, setIsBlocked] = useState<boolean>(false);
     const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
+    const [isTerminalOpen, setIsTerminalOpen] = useState<boolean>(false);
     
     // Terms and Privacy State
     const [hasAcceptedTerms, setHasAcceptedTerms] = useState<boolean>(false);
@@ -165,6 +166,12 @@ const App: React.FC = () => {
         setActiveTab('manual');
     };
 
+    const handleBatchVariables = (newVariables: Variable[]) => {
+        setVariables(prev => [...prev, ...newVariables]);
+        // Optionally switch to manual tab to see them
+        setActiveTab('manual');
+    };
+
     const TabButton: React.FC<{tabName: 'manual' | 'ai'; label: string;}> = ({ tabName, label }) => (
          <button
             onClick={() => setActiveTab(tabName)}
@@ -209,8 +216,8 @@ const App: React.FC = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-900 text-gray-100 flex flex-col">
-            <Header onOpenTerms={handleOpenTerms} />
+        <div className="min-h-screen bg-gray-900 text-gray-100 flex flex-col relative">
+            <Header onOpenTerms={handleOpenTerms} onOpenTerminal={() => setIsTerminalOpen(!isTerminalOpen)} />
             {!isOnline && (
                 <div className="bg-amber-600/90 text-white text-center px-4 py-2 text-sm font-medium shadow-md backdrop-blur-sm">
                     You are currently offline. AI features are disabled, but you can still edit variables manually.
@@ -261,6 +268,14 @@ const App: React.FC = () => {
                      </div>
                 </div>
             </main>
+            
+            <GeminiTerminal 
+                isOpen={isTerminalOpen} 
+                onClose={() => setIsTerminalOpen(false)} 
+                onExecute={handleBatchVariables}
+                variables={variables}
+            />
+
             <footer className="sticky bottom-0 bg-gray-900/80 backdrop-blur-sm p-4 border-t border-gray-700">
                 <div className="container mx-auto flex justify-center">
                     <button
