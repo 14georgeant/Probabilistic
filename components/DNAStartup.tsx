@@ -65,7 +65,7 @@ const DNAStartup: React.FC<DNAStartupProps> = ({ onComplete }) => {
                 .base-pair-container {
                     position: absolute;
                     width: 100%;
-                    height: 2px; /* Thinner lines */
+                    height: 1px; /* Thinner lines (was 2px) */
                     left: 0;
                     transform-style: preserve-3d;
                     transform-origin: center;
@@ -81,18 +81,18 @@ const DNAStartup: React.FC<DNAStartupProps> = ({ onComplete }) => {
                 }
                 .node {
                     position: absolute;
-                    width: 6px;
-                    height: 6px;
+                    width: 4px; /* Smaller nodes (was 6px) */
+                    height: 4px; /* Smaller nodes (was 6px) */
                     border-radius: 50%;
                     top: 50%;
                     transform: translateY(-50%);
                     /* Glow removed */
                 }
                 .node-left {
-                    left: -3px;
+                    left: -2px; /* Adjusted for size */
                 }
                 .node-right {
-                    right: -3px;
+                    right: -2px; /* Adjusted for size */
                 }
             `}</style>
 
