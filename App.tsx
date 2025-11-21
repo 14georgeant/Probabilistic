@@ -12,6 +12,7 @@ import GeminiTerminal from './components/GeminiTerminal';
 import MedicalChat from './components/MedicalChat';
 import FinancialChat from './components/FinancialChat';
 import ProgrammerChat from './components/ProgrammerChat';
+import HealthChat from './components/HealthChat';
 import TradaysCalendar from './components/TradaysCalendar';
 import CodeExportModal from './components/CodeExportModal';
 import NotebookSection from './components/NotebookSection';
@@ -85,6 +86,7 @@ const App: React.FC = () => {
     const [isMedicalChatOpen, setIsMedicalChatOpen] = useState<boolean>(false);
     const [isFinancialChatOpen, setIsFinancialChatOpen] = useState<boolean>(false);
     const [isProgrammerChatOpen, setIsProgrammerChatOpen] = useState<boolean>(false);
+    const [isHealthChatOpen, setIsHealthChatOpen] = useState<boolean>(false);
     const [isCodeModalOpen, setIsCodeModalOpen] = useState<boolean>(false);
     
     // Terms and Privacy State
@@ -179,6 +181,7 @@ const App: React.FC = () => {
     const handleLoadHealthTemplate = () => {
         setAppMode('health');
         setTargetOutcomeName('Peak Performance');
+        setIsHealthChatOpen(true);
         setVariables([
             {
                 id: generateUUID(),
@@ -281,6 +284,7 @@ const App: React.FC = () => {
             setIsMedicalChatOpen(false);
             setIsFinancialChatOpen(false);
             setIsProgrammerChatOpen(false);
+            setIsHealthChatOpen(false);
             
             // Automatically set the correct target outcome name based on the active mode
             let defaultTarget = 'Success';
@@ -475,6 +479,39 @@ const App: React.FC = () => {
         </button>
     );
 
+    const ModeButton = ({ mode, label, icon, activeColor, onClick }: { mode: string, label: string, icon?: React.ReactNode, activeColor: string, onClick: () => void }) => {
+        const isActive = appMode === mode;
+        return (
+            <button 
+                onClick={onClick}
+                className={`
+                    relative snap-center shrink-0 rounded-full text-sm font-bold transition-all duration-500 flex items-center gap-2 border-4 border-gray-900 select-none
+                    
+                    /* Mobile: Overlapping Stack */
+                    px-5 py-3 -ml-5 first:ml-0
+                    ${isActive 
+                        ? `${activeColor} text-white shadow-2xl shadow-black/50 scale-110 z-30 translate-x-2` 
+                        : 'bg-gray-800 text-gray-500 scale-90 z-0 opacity-70 hover:opacity-100 hover:scale-95 hover:z-20'
+                    }
+                    
+                    /* Desktop: Standard Tabs */
+                    md:ml-0 md:gap-2 md:px-4 md:py-2 md:border-0 md:scale-100 md:opacity-100 md:z-auto md:bg-transparent md:translate-x-0
+                    ${isActive 
+                        ? 'md:shadow-[0_0_15px_rgba(0,0,0,0.3)] md:translate-x-0' 
+                        : 'md:bg-gray-800 md:text-gray-500 md:hover:bg-gray-700 md:hover:text-gray-300'
+                    }
+                `}
+            >
+                {icon}
+                {/* Hide label on inactive mobile items to save space, always show on active or desktop */}
+                <span className={`${isActive ? 'block' : 'hidden sm:block'} transition-all whitespace-nowrap`}>{label}</span>
+                
+                {mode === 'health' && <span className="absolute -top-1 -right-1 bg-white text-black text-[8px] px-1.5 py-0.5 rounded-full font-black tracking-tighter z-40 shadow">PRO</span>}
+                {mode === 'medical' && <span className="absolute -top-1 -right-1 bg-indigo-400 text-white text-[8px] px-1.5 py-0.5 rounded-full font-black tracking-tighter z-40 shadow">MED</span>}
+            </button>
+        );
+    };
+
     if (showTermsModal) {
         return (
             <div className="min-h-screen bg-gray-900 text-gray-100 flex flex-col">
@@ -506,50 +543,67 @@ const App: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-gray-900 text-gray-100 flex flex-col relative transition-colors duration-500">
+            <style>{`
+                .no-scrollbar::-webkit-scrollbar {
+                    display: none;
+                }
+                .no-scrollbar {
+                    -ms-overflow-style: none;
+                    scrollbar-width: none;
+                }
+            `}</style>
+            
             <Header onOpenTerms={handleOpenTerms} onOpenTerminal={() => setIsTerminalOpen(!isTerminalOpen)} />
             
-            {/* Mode Switcher Bar */}
-            <div className="bg-gray-800/50 border-b border-gray-700 py-3 px-4">
-                <div className="container mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-                    <div className="flex flex-wrap justify-center items-center gap-2 md:gap-4 bg-gray-900 p-1 rounded-lg border border-gray-700">
-                        <button 
-                            onClick={() => setAppMode('general')}
-                            className={`px-3 md:px-4 py-1.5 rounded-md text-xs md:text-sm font-bold transition-all ${appMode === 'general' ? 'bg-gray-700 text-cyan-400 shadow' : 'text-gray-500 hover:text-gray-300'}`}
-                        >
-                            General Strategy
-                        </button>
-                        <button 
-                            onClick={() => setAppMode('financial')}
-                            className={`px-3 md:px-4 py-1.5 rounded-md text-xs md:text-sm font-bold transition-all flex items-center gap-2 ${appMode === 'financial' ? 'bg-emerald-900 text-emerald-400 shadow' : 'text-gray-500 hover:text-gray-300'}`}
-                        >
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                            Financial Adviser
-                        </button>
-                        <button 
-                            onClick={() => setAppMode('health')}
-                            className={`px-3 md:px-4 py-1.5 rounded-md text-xs md:text-sm font-bold transition-all flex items-center gap-2 ${appMode === 'health' ? 'bg-rose-900 text-rose-400 shadow' : 'text-gray-500 hover:text-gray-300'}`}
-                        >
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
-                            Health & Sport
-                            <span className="ml-1 bg-gradient-to-r from-amber-300 to-orange-500 text-black text-[8px] px-1 rounded font-black tracking-tighter">PREMIUM</span>
-                        </button>
-                        <button 
-                            onClick={() => setAppMode('medical')}
-                            className={`px-3 md:px-4 py-1.5 rounded-md text-xs md:text-sm font-bold transition-all flex items-center gap-2 ${appMode === 'medical' ? 'bg-indigo-900 text-indigo-400 shadow' : 'text-gray-500 hover:text-gray-300'}`}
-                        >
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
-                            Medical Research
-                            <span className="ml-1 bg-indigo-500 text-white text-[8px] px-1 rounded font-black tracking-tighter">CLINICAL</span>
-                        </button>
-                        <button 
-                            onClick={() => setAppMode('programmer')}
-                            className={`px-3 md:px-4 py-1.5 rounded-md text-xs md:text-sm font-bold transition-all flex items-center gap-2 ${appMode === 'programmer' ? 'bg-lime-900 text-lime-400 shadow' : 'text-gray-500 hover:text-gray-300'}`}
-                        >
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>
-                            Programmer Finds
-                        </button>
+            {/* Mode Switcher Bar - Slideshow Style on Mobile */}
+            <div className="sticky top-0 z-20 bg-gray-900/95 backdrop-blur-md border-b border-gray-800 py-2 shadow-2xl">
+                <div className="container mx-auto relative group">
+                     {/* Gradient Fade Edges for Scroll Indication */}
+                    <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-gray-900 to-transparent z-20 pointer-events-none md:hidden" />
+                    <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-gray-900 to-transparent z-20 pointer-events-none md:hidden" />
+
+                    <div className="flex items-center justify-between overflow-hidden">
+                        <div className="flex-grow flex overflow-x-auto snap-x snap-mandatory no-scrollbar items-center px-8 py-4 min-h-[80px] md:px-4 md:gap-4 md:justify-center md:py-1 md:min-h-0">
+                            <ModeButton 
+                                mode="general" 
+                                label="General Strategy" 
+                                activeColor="bg-cyan-600"
+                                onClick={() => setAppMode('general')} 
+                            />
+                            <ModeButton 
+                                mode="financial" 
+                                label="Financial Adviser" 
+                                activeColor="bg-emerald-600"
+                                icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>}
+                                onClick={() => setAppMode('financial')} 
+                            />
+                            <ModeButton 
+                                mode="health" 
+                                label="Health & Sport" 
+                                activeColor="bg-rose-600"
+                                icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>}
+                                onClick={() => setAppMode('health')} 
+                            />
+                            <ModeButton 
+                                mode="medical" 
+                                label="Medical Research" 
+                                activeColor="bg-indigo-600"
+                                icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>}
+                                onClick={() => setAppMode('medical')} 
+                            />
+                            <ModeButton 
+                                mode="programmer" 
+                                label="Programmer Finds" 
+                                activeColor="bg-lime-600"
+                                icon={<svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" /></svg>}
+                                onClick={() => setAppMode('programmer')} 
+                            />
+                        </div>
                     </div>
-                    
+                </div>
+
+                {/* Secondary Toolbar for Templates (Visible on Desktop or below slider on mobile) */}
+                <div className="container mx-auto px-4 pt-1 flex justify-center">
                     {appMode === 'financial' && (
                          <button onClick={handleLoadFinancialTemplate} className="text-xs text-emerald-400 hover:text-emerald-300 underline decoration-dotted">
                              Populate Financial Template
@@ -627,15 +681,17 @@ const App: React.FC = () => {
                             <h2 className={`text-2xl font-bold ${theme.text}`}>
                                 2. {appMode === 'medical' ? 'Clinical Analysis' : appMode === 'health' ? 'Performance Analysis' : appMode === 'financial' ? 'Advisory & Forecast' : appMode === 'programmer' ? 'Architecture Review' : 'Analysis & Impact'}
                             </h2>
-                            {(appMode === 'medical' || appMode === 'financial' || appMode === 'programmer') && (
+                            {(appMode === 'medical' || appMode === 'financial' || appMode === 'programmer' || appMode === 'health') && (
                                 <button 
-                                    onClick={() => appMode === 'medical' ? setIsMedicalChatOpen(true) : appMode === 'financial' ? setIsFinancialChatOpen(true) : setIsProgrammerChatOpen(true)}
+                                    onClick={() => appMode === 'medical' ? setIsMedicalChatOpen(true) : appMode === 'financial' ? setIsFinancialChatOpen(true) : appMode === 'programmer' ? setIsProgrammerChatOpen(true) : setIsHealthChatOpen(true)}
                                     className={`text-xs px-3 py-1 rounded-full flex items-center gap-1 animate-pulse ${
                                         appMode === 'medical' 
                                         ? 'bg-indigo-700 hover:bg-indigo-600 text-white' 
                                         : appMode === 'financial'
                                         ? 'bg-emerald-700 hover:bg-emerald-600 text-white'
-                                        : 'bg-lime-700 hover:bg-lime-600 text-white'
+                                        : appMode === 'programmer'
+                                        ? 'bg-lime-700 hover:bg-lime-600 text-white'
+                                        : 'bg-rose-700 hover:bg-rose-600 text-white'
                                     }`}
                                 >
                                     {appMode === 'programmer' ? (
@@ -646,7 +702,7 @@ const App: React.FC = () => {
                                     ) : (
                                         <>
                                             <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /></svg>
-                                            {appMode === 'medical' ? 'Medical AI' : 'ICT Analyst'}
+                                            {appMode === 'medical' ? 'Medical AI' : appMode === 'health' ? 'Sports Sci AI' : 'ICT Analyst'}
                                         </>
                                     )}
                                 </button>
@@ -763,6 +819,12 @@ const App: React.FC = () => {
                 key={`prog-chat-${resetKey}`}
                 isOpen={isProgrammerChatOpen}
                 onClose={() => setIsProgrammerChatOpen(false)}
+            />
+
+            <HealthChat
+                key={`health-chat-${resetKey}`}
+                isOpen={isHealthChatOpen}
+                onClose={() => setIsHealthChatOpen(false)}
             />
 
             <CodeExportModal 
