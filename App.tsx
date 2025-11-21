@@ -69,7 +69,6 @@ const App: React.FC = () => {
     const [error, setError] = useState<string>('');
     const [activeTab, setActiveTab] = useState<'manual' | 'ai' | 'price_action'>('manual');
     const [isBlocked, setIsBlocked] = useState<boolean>(false);
-    const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
     const [isTerminalOpen, setIsTerminalOpen] = useState<boolean>(false);
     const [isMedicalChatOpen, setIsMedicalChatOpen] = useState<boolean>(false);
     const [isFinancialChatOpen, setIsFinancialChatOpen] = useState<boolean>(false);
@@ -109,17 +108,6 @@ const App: React.FC = () => {
             setHasAcceptedTerms(true);
             setShowTermsModal(false);
         }
-
-        const handleOnline = () => setIsOnline(true);
-        const handleOffline = () => setIsOnline(false);
-
-        window.addEventListener('online', handleOnline);
-        window.addEventListener('offline', handleOffline);
-
-        return () => {
-            window.removeEventListener('online', handleOnline);
-            window.removeEventListener('offline', handleOffline);
-        };
     }, []);
 
     const handleAcceptTerms = () => {
@@ -639,14 +627,14 @@ const App: React.FC = () => {
                                 <LinkAnalyzer 
                                     onVariableGenerated={handleAddVariable} 
                                     onSecurityRisk={handleSecurityRisk} 
-                                    isOnline={isOnline}
+                                    isOnline={true}
                                     mode={appMode}
                                 />
                             ) : (
                                 <PriceActionAnalyzer
                                     onVariableGenerated={handleAddVariable}
                                     onSecurityRisk={handleSecurityRisk}
-                                    isOnline={isOnline}
+                                    isOnline={true}
                                 />
                             )}
                         </div>

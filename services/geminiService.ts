@@ -17,6 +17,9 @@ const getAiClient = () => {
     if (!apiKey) {
         console.error("Gemini Service Error: API_KEY is missing from process.env. Current env:", process.env);
         throw new Error("API_KEY environment variable is not set. Please configure it in your deployment settings or .env file.");
+    } else {
+        // Debug log (safe - only showing length)
+        console.log(`Gemini Client Initialized. Key length: ${apiKey.length}`);
     }
     return new GoogleGenAI({ apiKey });
 };

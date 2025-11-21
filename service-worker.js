@@ -1,4 +1,4 @@
-const CACHE_NAME = 'poa-v3';
+const CACHE_NAME = 'poa-v4';
 
 // Install: Cache known static shell assets immediately
 self.addEventListener('install', (event) => {
