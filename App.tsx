@@ -11,27 +11,46 @@ import MedicalChat from './components/MedicalChat';
 
 const App: React.FC = () => {
     // App Mode: 'general' (Cyan), 'financial' (Emerald), 'health' (Rose), 'medical' (Indigo)
-    const [appMode, setAppMode] = useState<'general' | 'financial' | 'health' | 'medical'>('general');
+    // Load from localStorage if available
+    const [appMode, setAppMode] = useState<'general' | 'financial' | 'health' | 'medical'>(() => {
+        const saved = localStorage.getItem('poa_app_mode');
+        return (saved as 'general' | 'financial' | 'health' | 'medical') || 'general';
+    });
 
-    const [variables, setVariables] = useState<Variable[]>([
-        {
-            id: crypto.randomUUID(),
-            name: 'Marketing Campaign',
-            states: [
-                { id: crypto.randomUUID(), name: 'Social Media', outcomes: [{ id: crypto.randomUUID(), name: 'Success', probability: 70 }] },
-                { id: crypto.randomUUID(), name: 'Email Outreach', outcomes: [{ id: crypto.randomUUID(), name: 'Success', probability: 60 }] },
-            ]
-        },
-        {
-            id: crypto.randomUUID(),
-            name: 'Product Pricing',
-            states: [
-                { id: crypto.randomUUID(), name: 'Premium Tier', outcomes: [{ id: crypto.randomUUID(), name: 'Success', probability: 55 }] },
-                { id: crypto.randomUUID(), name: 'Standard Tier', outcomes: [{ id: crypto.randomUUID(), name: 'Success', probability: 80 }] },
-            ]
+    const [variables, setVariables] = useState<Variable[]>(() => {
+        const saved = localStorage.getItem('poa_variables');
+        if (saved) {
+            try {
+                return JSON.parse(saved);
+            } catch (e) {
+                console.error("Error parsing saved variables:", e);
+            }
         }
-    ]);
-    const [targetOutcomeName, setTargetOutcomeName] = useState<string>('Success');
+        // Default Initial State
+        return [
+            {
+                id: crypto.randomUUID(),
+                name: 'Marketing Campaign',
+                states: [
+                    { id: crypto.randomUUID(), name: 'Social Media', outcomes: [{ id: crypto.randomUUID(), name: 'Success', probability: 70 }] },
+                    { id: crypto.randomUUID(), name: 'Email Outreach', outcomes: [{ id: crypto.randomUUID(), name: 'Success', probability: 60 }] },
+                ]
+            },
+            {
+                id: crypto.randomUUID(),
+                name: 'Product Pricing',
+                states: [
+                    { id: crypto.randomUUID(), name: 'Premium Tier', outcomes: [{ id: crypto.randomUUID(), name: 'Success', probability: 55 }] },
+                    { id: crypto.randomUUID(), name: 'Standard Tier', outcomes: [{ id: crypto.randomUUID(), name: 'Success', probability: 80 }] },
+                ]
+            }
+        ];
+    });
+    
+    const [targetOutcomeName, setTargetOutcomeName] = useState<string>(() => {
+        return localStorage.getItem('poa_target_outcome') || 'Success';
+    });
+
     const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
     const [geminiInsights, setGeminiInsights] = useState<string>('');
     const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -45,6 +64,19 @@ const App: React.FC = () => {
     // Terms and Privacy State
     const [hasAcceptedTerms, setHasAcceptedTerms] = useState<boolean>(false);
     const [showTermsModal, setShowTermsModal] = useState<boolean>(true);
+
+    // Persistence Effects
+    useEffect(() => {
+        localStorage.setItem('poa_app_mode', appMode);
+    }, [appMode]);
+
+    useEffect(() => {
+        localStorage.setItem('poa_variables', JSON.stringify(variables));
+    }, [variables]);
+
+    useEffect(() => {
+        localStorage.setItem('poa_target_outcome', targetOutcomeName);
+    }, [targetOutcomeName]);
 
     useEffect(() => {
         const accepted = localStorage.getItem('poa_terms_accepted');
