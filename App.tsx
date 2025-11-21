@@ -9,8 +9,8 @@ import TermsModal from './components/TermsModal';
 import GeminiTerminal from './components/GeminiTerminal';
 
 const App: React.FC = () => {
-    // App Mode: 'general' (Cyan) or 'financial' (Emerald)
-    const [appMode, setAppMode] = useState<'general' | 'financial'>('general');
+    // App Mode: 'general' (Cyan), 'financial' (Emerald), 'health' (Rose)
+    const [appMode, setAppMode] = useState<'general' | 'financial' | 'health'>('general');
 
     const [variables, setVariables] = useState<Variable[]>([
         {
@@ -98,6 +98,40 @@ const App: React.FC = () => {
                 states: [
                     { id: crypto.randomUUID(), name: 'Bull Market', outcomes: [{ id: crypto.randomUUID(), name: 'High ROI', probability: 85 }] },
                     { id: crypto.randomUUID(), name: 'Bear Market', outcomes: [{ id: crypto.randomUUID(), name: 'High ROI', probability: 20 }] },
+                ]
+            }
+        ]);
+        setAnalysisResult(null);
+        setGeminiInsights('');
+    };
+
+    const handleLoadHealthTemplate = () => {
+        setAppMode('health');
+        setTargetOutcomeName('Peak Performance');
+        setVariables([
+            {
+                id: crypto.randomUUID(),
+                name: 'Diet Protocol',
+                states: [
+                    { id: crypto.randomUUID(), name: 'High Protein / Low Carb', outcomes: [{ id: crypto.randomUUID(), name: 'Peak Performance', probability: 75 }] },
+                    { id: crypto.randomUUID(), name: 'Intermittent Fasting', outcomes: [{ id: crypto.randomUUID(), name: 'Peak Performance', probability: 60 }] },
+                    { id: crypto.randomUUID(), name: 'Standard American Diet', outcomes: [{ id: crypto.randomUUID(), name: 'Peak Performance', probability: 15 }] },
+                ]
+            },
+            {
+                id: crypto.randomUUID(),
+                name: 'Sleep Hygiene',
+                states: [
+                    { id: crypto.randomUUID(), name: '8+ Hours Consistent', outcomes: [{ id: crypto.randomUUID(), name: 'Peak Performance', probability: 90 }] },
+                    { id: crypto.randomUUID(), name: '6 Hours Fragmented', outcomes: [{ id: crypto.randomUUID(), name: 'Peak Performance', probability: 40 }] },
+                ]
+            },
+            {
+                id: crypto.randomUUID(),
+                name: 'Training Load',
+                states: [
+                    { id: crypto.randomUUID(), name: 'Progressive Overload', outcomes: [{ id: crypto.randomUUID(), name: 'Peak Performance', probability: 80 }] },
+                    { id: crypto.randomUUID(), name: 'Overtraining', outcomes: [{ id: crypto.randomUUID(), name: 'Peak Performance', probability: 25 }] },
                 ]
             }
         ]);
@@ -199,23 +233,50 @@ const App: React.FC = () => {
         setActiveTab('manual');
     };
 
+    // Dynamic Theme Colors
+    const getThemeColors = () => {
+        switch (appMode) {
+            case 'financial': return {
+                text: 'text-emerald-400',
+                bg: 'bg-emerald-900',
+                border: 'border-emerald-500',
+                hover: 'hover:text-emerald-300',
+                btn: 'bg-emerald-600 hover:bg-emerald-500',
+                focus: 'focus:ring-emerald-500'
+            };
+            case 'health': return {
+                text: 'text-rose-400',
+                bg: 'bg-rose-900',
+                border: 'border-rose-500',
+                hover: 'hover:text-rose-300',
+                btn: 'bg-rose-600 hover:bg-rose-500',
+                focus: 'focus:ring-rose-500'
+            };
+            default: return {
+                text: 'text-cyan-400',
+                bg: 'bg-gray-700', // special case
+                border: 'border-cyan-500',
+                hover: 'hover:text-cyan-300',
+                btn: 'bg-cyan-600 hover:bg-cyan-500',
+                focus: 'focus:ring-cyan-500'
+            };
+        }
+    };
+
+    const theme = getThemeColors();
+
     const TabButton: React.FC<{tabName: 'manual' | 'ai'; label: string;}> = ({ tabName, label }) => (
          <button
             onClick={() => setActiveTab(tabName)}
             className={`px-4 py-2 text-sm font-medium rounded-t-lg transition-colors focus:outline-none ${
                 activeTab === tabName
-                ? `${appMode === 'financial' ? 'bg-emerald-900/80 text-emerald-400' : 'bg-gray-700 text-cyan-400'}`
+                ? `${appMode === 'general' ? 'bg-gray-700' : theme.bg}/80 ${theme.text}`
                 : 'text-gray-400 hover:bg-gray-700/50 hover:text-gray-200'
             }`}
         >
             {label}
         </button>
     );
-
-    // Theme classes based on mode
-    const themeColor = appMode === 'financial' ? 'emerald' : 'cyan';
-    const primaryText = appMode === 'financial' ? 'text-emerald-400' : 'text-cyan-400';
-    const buttonBg = appMode === 'financial' ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-cyan-600 hover:bg-cyan-500';
 
     if (showTermsModal) {
         return (
@@ -250,50 +311,60 @@ const App: React.FC = () => {
             
             {/* Mode Switcher Bar */}
             <div className="bg-gray-800/50 border-b border-gray-700 py-3 px-4">
-                <div className="container mx-auto flex flex-wrap justify-between items-center gap-4">
-                    <div className="flex items-center gap-4 bg-gray-900 p-1 rounded-lg border border-gray-700">
+                <div className="container mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div className="flex flex-wrap justify-center items-center gap-2 md:gap-4 bg-gray-900 p-1 rounded-lg border border-gray-700">
                         <button 
                             onClick={() => setAppMode('general')}
-                            className={`px-4 py-1.5 rounded-md text-sm font-bold transition-all ${appMode === 'general' ? 'bg-gray-700 text-cyan-400 shadow' : 'text-gray-500 hover:text-gray-300'}`}
+                            className={`px-3 md:px-4 py-1.5 rounded-md text-xs md:text-sm font-bold transition-all ${appMode === 'general' ? 'bg-gray-700 text-cyan-400 shadow' : 'text-gray-500 hover:text-gray-300'}`}
                         >
                             General Strategy
                         </button>
                         <button 
                             onClick={() => setAppMode('financial')}
-                            className={`px-4 py-1.5 rounded-md text-sm font-bold transition-all flex items-center gap-2 ${appMode === 'financial' ? 'bg-emerald-900 text-emerald-400 shadow' : 'text-gray-500 hover:text-gray-300'}`}
+                            className={`px-3 md:px-4 py-1.5 rounded-md text-xs md:text-sm font-bold transition-all flex items-center gap-2 ${appMode === 'financial' ? 'bg-emerald-900 text-emerald-400 shadow' : 'text-gray-500 hover:text-gray-300'}`}
                         >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                             Financial Adviser
+                        </button>
+                        <button 
+                            onClick={() => setAppMode('health')}
+                            className={`px-3 md:px-4 py-1.5 rounded-md text-xs md:text-sm font-bold transition-all flex items-center gap-2 ${appMode === 'health' ? 'bg-rose-900 text-rose-400 shadow' : 'text-gray-500 hover:text-gray-300'}`}
+                        >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                            Health & Sport
+                            <span className="ml-1 bg-gradient-to-r from-amber-300 to-orange-500 text-black text-[8px] px-1 rounded font-black tracking-tighter">PREMIUM</span>
                         </button>
                     </div>
                     
                     {appMode === 'financial' && (
-                         <button 
-                            onClick={handleLoadFinancialTemplate}
-                            className="text-xs text-emerald-400 hover:text-emerald-300 underline decoration-dotted"
-                         >
+                         <button onClick={handleLoadFinancialTemplate} className="text-xs text-emerald-400 hover:text-emerald-300 underline decoration-dotted">
                              Populate Financial Template
+                         </button>
+                    )}
+                    {appMode === 'health' && (
+                         <button onClick={handleLoadHealthTemplate} className="text-xs text-rose-400 hover:text-rose-300 underline decoration-dotted">
+                             Populate Fitness Template
                          </button>
                     )}
                 </div>
             </div>
 
             <main className="flex-grow container mx-auto p-4 md:p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
-                <div className={`bg-gray-800 p-6 rounded-lg shadow-2xl flex flex-col border-t-4 ${appMode === 'financial' ? 'border-emerald-500' : 'border-cyan-500'}`}>
-                    <h2 className={`text-2xl font-bold mb-4 ${primaryText}`}>
-                        1. {appMode === 'financial' ? 'Portfolio & Risk Factors' : 'Define Variables & Outcomes'}
+                <div className={`bg-gray-800 p-6 rounded-lg shadow-2xl flex flex-col border-t-4 ${theme.border}`}>
+                    <h2 className={`text-2xl font-bold mb-4 ${theme.text}`}>
+                        1. {appMode === 'health' ? 'Bio-Metrics & Routines' : appMode === 'financial' ? 'Portfolio & Risk Factors' : 'Define Variables & Outcomes'}
                     </h2>
                      <div className="mb-6">
                         <label htmlFor="targetOutcome" className="block text-sm font-medium text-gray-300 mb-2">
-                            {appMode === 'financial' ? 'Financial Goal (e.g., High ROI, Solvency)' : 'Target Outcome Name'}
+                            {appMode === 'health' ? 'Performance Goal (e.g., Weight Loss, Hypertrophy)' : appMode === 'financial' ? 'Financial Goal (e.g., High ROI, Solvency)' : 'Target Outcome Name'}
                         </label>
                         <input
                             id="targetOutcome"
                             type="text"
                             value={targetOutcomeName}
                             onChange={(e) => setTargetOutcomeName(e.target.value)}
-                            placeholder={appMode === 'financial' ? "e.g., Maximize Returns" : "e.g., Success, Sale, Conversion"}
-                            className={`w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white placeholder-gray-400 focus:ring-2 transition focus:ring-${themeColor}-500 focus:border-${themeColor}-500`}
+                            placeholder={appMode === 'health' ? "e.g., Sub-3 Hour Marathon" : appMode === 'financial' ? "e.g., Maximize Returns" : "e.g., Success, Sale, Conversion"}
+                            className={`w-full bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white placeholder-gray-400 focus:ring-2 transition ${theme.focus}`}
                         />
                     </div>
                     
@@ -315,9 +386,9 @@ const App: React.FC = () => {
                         )}
                     </div>
                 </div>
-                <div className={`bg-gray-800 p-6 rounded-lg shadow-2xl border-t-4 ${appMode === 'financial' ? 'border-emerald-500' : 'border-cyan-500'}`}>
-                     <h2 className={`text-2xl font-bold mb-4 ${primaryText}`}>
-                         2. {appMode === 'financial' ? 'Advisory & Forecast' : 'Analysis & Impact'}
+                <div className={`bg-gray-800 p-6 rounded-lg shadow-2xl border-t-4 ${theme.border}`}>
+                     <h2 className={`text-2xl font-bold mb-4 ${theme.text}`}>
+                         2. {appMode === 'health' ? 'Performance Analysis' : appMode === 'financial' ? 'Advisory & Forecast' : 'Analysis & Impact'}
                      </h2>
                      <div className="h-full flex flex-col">
                          {error && <div className="bg-red-900 border border-red-700 text-red-200 p-3 rounded-md mb-4">{error}</div>}
@@ -347,10 +418,10 @@ const App: React.FC = () => {
                         className={`w-full md:w-1/2 lg:w-1/3 font-bold py-3 px-6 rounded-lg text-lg shadow-lg transform transition-all duration-300 ease-in-out ${
                             isLoading || !isOnline
                             ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                            : `${buttonBg} text-white hover:scale-105`
+                            : `${theme.btn} text-white hover:scale-105`
                         }`}
                     >
-                        {isLoading ? 'Analyzing...' : !isOnline ? 'Offline - Connect to Internet for AI' : `Generate ${appMode === 'financial' ? 'Financial Plan' : 'Analysis'}`}
+                        {isLoading ? 'Analyzing...' : !isOnline ? 'Offline - Connect to Internet for AI' : `Generate ${appMode === 'health' ? 'Health Report' : appMode === 'financial' ? 'Financial Plan' : 'Analysis'}`}
                     </button>
                 </div>
             </footer>

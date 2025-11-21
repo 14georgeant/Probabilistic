@@ -60,7 +60,7 @@ ${text}
 export const generateAnalysisSummary = async (
     variables: Variable[], 
     result: AnalysisResult, 
-    mode: 'general' | 'financial' = 'general'
+    mode: 'general' | 'financial' | 'health' = 'general'
 ): Promise<string> => {
 
   const variablesDescription = variables.map(v => 
@@ -96,6 +96,26 @@ export const generateAnalysisSummary = async (
       #### 4. Advisory Recommendations
       - **Portfolio Rebalancing:** Suggest a concrete change to the "Weakest Link" to mitigate risk (e.g., "Hedge against market volatility", "Diversify asset class").
       - **Strategic Addition:** Suggest one new financial variable to track (e.g., "Interest Rates", "Inflation Index") to make the model more robust.
+      `;
+  } else if (mode === 'health') {
+      systemPrompt = `You are an Elite Sports Scientist and Performance Coach. Your goal is to analyze the user's lifestyle/training model and provide advice to maximize physical performance or health outcomes.
+      
+      **Role:** Sports Nutritionist & Strength Coach.
+      **Tone:** Energetic, Science-Backed, Motivational, Direct.
+      
+      **Structure your advice as follows:**
+      #### 1. Physiological Projection
+      Summarize the likelihood of achieving the physical goal based on current inputs. Use terms like "Hypertrophy", "Metabolic Efficiency", or "VO2 Max" where relevant.
+      
+      #### 2. The 'Alpha' Factor
+      Identify the habit or training variable that is contributing most to success. Explain the physiological benefit.
+      
+      #### 3. Performance Bottlenecks
+      Identify the habit (the weakest link) that is dragging down the probability of success. Is it sleep? Diet consistency? Recovery?
+      
+      #### 4. Protocol Adjustments
+      - **Action Plan:** Give a specific instruction to fix the bottleneck (e.g., "Increase protein intake to 2g/kg", "Implement deload week").
+      - **Metric to Track:** Suggest a new variable to measure (e.g., "Resting Heart Rate", "Caloric Deficit").
       `;
   } else {
       systemPrompt = `You are a senior product analyst and technical advisor. Your goal is to provide unbiased, constructive, and actionable advice to help a user improve their strategy.
@@ -188,7 +208,7 @@ const variableSchema = {
 
 export const analyzeLinkForVariables = async (
     url: string, 
-    mode: 'general' | 'financial' = 'general'
+    mode: 'general' | 'financial' | 'health' = 'general'
 ): Promise<{ variable: Variable; sources: { title: string; uri: string }[] }> => {
     
     let instructions = "";
@@ -200,6 +220,14 @@ export const analyzeLinkForVariables = async (
         - If it's a **Crypto/Asset**: Variable name: "Volatility" or "Adoption Rate". States: "High Growth", "Correction", "Stagnation".
         - If it's **News**: Variable name: "Economic Impact". States: "Positive Shock", "Negative Shock", "Neutral".
         - Estimate probabilities based on the sentiment of the content.
+        `;
+    } else if (mode === 'health') {
+        instructions = `
+        This is for a **Health & Sports Performance Model**.
+        Analyze the URL for nutritional value, workout intensity, or health advice.
+        - If it's a **Recipe/Food**: Variable name: "Dietary Impact" or "Macro Profile". States: "High Protein/Anabolic", "High Calorie/Bulking", "Clean/Maintenance".
+        - If it's a **Workout Video**: Variable name: "Training Stimulus". States: "Hypertrophy (Muscle Gain)", "Endurance", "Active Recovery".
+        - If it's **Supplement/Gear**: Variable name: "Performance Aid". States: "Effective", "Placebo/Low Impact".
         `;
     } else {
         instructions = `
