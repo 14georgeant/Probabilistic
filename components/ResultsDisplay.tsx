@@ -1,15 +1,30 @@
 
-import React from 'react';
-import { AnalysisResult } from '../types';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, Cell } from 'recharts';
+import React, { useState, useEffect, useMemo } from 'react';
+import { AnalysisResult, Variable } from '../types';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from 'recharts';
 
 interface ResultsDisplayProps {
     result: AnalysisResult | null;
     insights: string;
     isLoading: boolean;
+    variables: Variable[]; // Needed for context in leverage calculation
 }
 
 const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ result, insights, isLoading }) => {
+    // Store temporary adjustments to probabilities for the "What If" simulator
+    // Key: variableName, Value: user-adjusted probability (0-100)
+    const [simulatedValues, setSimulatedValues] = useState<Record<string, number>>({});
+
+    // Reset simulation when result changes
+    useEffect(() => {
+        if (result) {
+            const initial: Record<string, number> = {};
+            result.bestCombination.forEach(item => {
+                initial[item.variableName] = item.baseProbability;
+            });
+            setSimulatedValues(initial);
+        }
+    }, [result]);
 
     const handleExport = () => {
         if (!result) return;
@@ -20,10 +35,11 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ result, insights, isLoa
             contact: "gjoekabz98@gmail.com",
             date: new Date().toISOString(),
             targetOutcome: result.outcomeName,
-            highestProbability: `${(result.highestProbability * 100).toFixed(2)}%`,
+            baseProbability: `${(result.highestProbability * 100).toFixed(2)}%`,
             optimalPath: result.bestCombination.map(c => ({
                 variable: c.variableName,
-                choice: c.stateName
+                choice: c.stateName,
+                probability: c.baseProbability
             })),
             aiInsights: insights
         };
@@ -38,6 +54,49 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ result, insights, isLoa
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(href);
+    };
+
+    // Recalculate total probability based on slider values
+    const simulatedProbability = useMemo(() => {
+        if (!result) return 0;
+        let prob = 1;
+        result.bestCombination.forEach(item => {
+            const val = simulatedValues[item.variableName] ?? item.baseProbability;
+            prob *= (val / 100);
+        });
+        return prob;
+    }, [result, simulatedValues]);
+
+    const calculateLeverage = (baseProb: number) => {
+        // Logic: A variable with 50% prob has 2x leverage potential (can double outcome).
+        // A variable with 90% prob has ~1.1x leverage potential.
+        // ROI = (100 - current) / current
+        if (baseProb === 0) return 999; // Infinite leverage mathematically
+        return (100 - baseProb); // Simple "Room for growth" metric
+    };
+
+    const handleSliderChange = (variableName: string, newValue: number) => {
+        setSimulatedValues(prev => ({
+            ...prev,
+            [variableName]: newValue
+        }));
+    };
+
+    const renderMarkdown = (text: string) => {
+        const lines = text.split('\n');
+        return lines.map((line, index) => {
+            if (line.startsWith('####')) return <h4 key={index} className="text-lg font-semibold mt-4 mb-1 text-cyan-300">{line.replace('####', '').trim()}</h4>;
+            if (line.startsWith('###')) return <h3 key={index} className="text-xl font-bold mt-4 mb-2 text-cyan-400">{line.replace('###', '').trim()}</h3>;
+            if (line.startsWith('##')) return <h2 key={index} className="text-2xl font-bold mt-6 mb-3 text-cyan-400">{line.replace('##', '').trim()}</h2>;
+            if (line.startsWith('#')) return <h1 key={index} className="text-3xl font-bold mt-8 mb-4 text-cyan-400">{line.replace('#', '').trim()}</h1>;
+            if (line.startsWith('- **')) {
+                 const boldText = line.match(/\*\*(.*?)\*\*/)?.[1] || '';
+                 const restOfText = line.replace(`- **${boldText}**`, '');
+                 return <p key={index} className="mb-2"><strong className="font-semibold text-white">{boldText}</strong>{restOfText}</p>;
+            }
+            if (line.startsWith('- ')) return <li key={index} className="ml-5 list-disc">{line.substring(2)}</li>;
+            return <p key={index} className="mb-2 text-gray-300">{line}</p>;
+        });
     };
 
     if (isLoading) {
@@ -57,91 +116,175 @@ const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ result, insights, isLoa
             </div>
         );
     }
-    
+
+    const baseProbPercent = result.highestProbability * 100;
+    const simProbPercent = simulatedProbability * 100;
+    const probDelta = simProbPercent - baseProbPercent;
+
+    // Sort variables by "Room for improvement" (Leverage)
+    const leverageSorted = [...result.bestCombination].sort((a, b) => {
+        return calculateLeverage(b.baseProbability) - calculateLeverage(a.baseProbability); // Descending
+    }).reverse();
+
     const chartData = [
-        { name: 'Highest Probability', value: result.highestProbability * 100, remaining: 100 - (result.highestProbability * 100) }
+        { name: 'Current', value: baseProbPercent, type: 'Current' },
+        { name: 'Simulated', value: simProbPercent, type: 'Simulated' }
     ];
 
-    const renderMarkdown = (text: string) => {
-        const lines = text.split('\n');
-        return lines.map((line, index) => {
-            if (line.startsWith('####')) return <h4 key={index} className="text-lg font-semibold mt-4 mb-1 text-cyan-300">{line.replace('####', '').trim()}</h4>;
-            if (line.startsWith('###')) return <h3 key={index} className="text-xl font-bold mt-4 mb-2 text-cyan-400">{line.replace('###', '').trim()}</h3>;
-            if (line.startsWith('##')) return <h2 key={index} className="text-2xl font-bold mt-6 mb-3 text-cyan-400">{line.replace('##', '').trim()}</h2>;
-            if (line.startsWith('#')) return <h1 key={index} className="text-3xl font-bold mt-8 mb-4 text-cyan-400">{line.replace('#', '').trim()}</h1>;
-            if (line.startsWith('- **')) {
-                 const boldText = line.match(/\*\*(.*?)\*\*/)?.[1] || '';
-                 const restOfText = line.replace(`- **${boldText}**`, '');
-                 return <p key={index} className="mb-2"><strong className="font-semibold text-white">{boldText}</strong>{restOfText}</p>;
-            }
-            if (line.startsWith('- ')) return <li key={index} className="ml-5 list-disc">{line.substring(2)}</li>;
-            return <p key={index} className="mb-2 text-gray-300">{line}</p>;
-        });
-    };
-
     return (
-        <div className="space-y-6">
-            <div className="flex justify-end">
+        <div className="space-y-8 animate-fade-in">
+            {/* Header Actions */}
+            <div className="flex justify-between items-center border-b border-gray-700 pb-4">
+                <h3 className="text-xl font-bold text-white">Optimal Path: <span className="text-cyan-400">{(result.highestProbability * 100).toFixed(2)}%</span></h3>
                 <button
                     onClick={handleExport}
                     className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider bg-gray-700 hover:bg-gray-600 text-cyan-400 hover:text-cyan-300 py-2 px-4 rounded-md border border-gray-600 transition-all shadow-sm"
-                    title="Download results as JSON"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
                         <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
                     </svg>
-                    Export JSON
+                    Export
                 </button>
             </div>
 
-            <div>
-                <h3 className="text-xl font-bold text-white mb-3">Optimal Path for "{result.outcomeName}"</h3>
-                <div className="bg-gray-700/50 p-4 rounded-lg">
-                    <ul className="space-y-2">
-                        {result.bestCombination.map((item, index) => (
-                            <li key={index} className="flex items-center">
-                                <span className="text-cyan-400 font-semibold mr-2 w-1/3">{item.variableName}:</span>
-                                <span className="text-white">{item.stateName}</span>
-                            </li>
+            {/* Impact Simulator Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                {/* Left: Sliders */}
+                <div className="bg-gray-700/30 p-4 rounded-lg border border-gray-600/50">
+                    <div className="flex items-center justify-between mb-4">
+                        <h4 className="text-md font-bold text-gray-200 flex items-center gap-2">
+                            <svg className="w-5 h-5 text-purple-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" /></svg>
+                            Impact Simulator
+                        </h4>
+                        <button 
+                            onClick={() => setSimulatedValues(Object.fromEntries(result.bestCombination.map(i => [i.variableName, i.baseProbability])))}
+                            className="text-xs text-gray-400 hover:text-white underline"
+                        >
+                            Reset
+                        </button>
+                    </div>
+                    <p className="text-xs text-gray-400 mb-4">Adjust individual probabilities to see how improving a specific area impacts the total outcome.</p>
+                    
+                    <div className="space-y-4 max-h-80 overflow-y-auto custom-scrollbar pr-2">
+                        {result.bestCombination.map((item, idx) => (
+                            <div key={idx} className="bg-gray-800/50 p-3 rounded-md">
+                                <div className="flex justify-between text-sm mb-1">
+                                    <span className="text-gray-300 font-medium truncate w-1/2" title={item.variableName}>{item.variableName}</span>
+                                    <span className="text-cyan-300 font-mono">{simulatedValues[item.variableName] ?? item.baseProbability}%</span>
+                                </div>
+                                <input 
+                                    type="range" 
+                                    min="0" 
+                                    max="100" 
+                                    value={simulatedValues[item.variableName] ?? item.baseProbability}
+                                    onChange={(e) => handleSliderChange(item.variableName, parseInt(e.target.value))}
+                                    className="w-full h-2 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-cyan-500"
+                                />
+                                <div className="flex justify-between text-[10px] text-gray-500 mt-1">
+                                    <span>Selected State: {item.stateName}</span>
+                                    <span>Base: {item.baseProbability}%</span>
+                                </div>
+                            </div>
                         ))}
-                    </ul>
+                    </div>
+                </div>
+
+                {/* Right: Visualization */}
+                <div className="flex flex-col">
+                    <h4 className="text-md font-bold text-gray-200 mb-2">Projected Outcome</h4>
+                    <div className="flex-grow bg-gray-700/30 p-4 rounded-lg border border-gray-600/50 flex flex-col justify-center">
+                        <div className="h-48 w-full mb-4">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 30, left: 40, bottom: 5 }}>
+                                    <XAxis type="number" domain={[0, 100]} hide />
+                                    <YAxis type="category" dataKey="name" tick={{ fill: '#9CA3AF', fontSize: 12 }} width={60} />
+                                    <Tooltip
+                                        cursor={{fill: 'transparent'}}
+                                        contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #4B5563', color: '#fff' }}
+                                        formatter={(value: number) => [`${value.toFixed(2)}%`, 'Probability']}
+                                    />
+                                    <ReferenceLine x={baseProbPercent} stroke="#6B7280" strokeDasharray="3 3" />
+                                    <Bar dataKey="value" radius={[0, 4, 4, 0]} barSize={30}>
+                                        {chartData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={entry.type === 'Current' ? '#4B5563' : (probDelta >= 0 ? '#22D3EE' : '#EF4444')} />
+                                        ))}
+                                    </Bar>
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                        
+                        <div className="text-center">
+                            <p className="text-sm text-gray-400">Simulated Total Probability</p>
+                            <div className={`text-4xl font-bold ${probDelta > 0 ? 'text-cyan-400' : probDelta < 0 ? 'text-red-400' : 'text-white'}`}>
+                                {simProbPercent.toFixed(2)}%
+                            </div>
+                            {probDelta !== 0 && (
+                                <span className={`text-sm font-bold ${probDelta > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                    {probDelta > 0 ? '+' : ''}{probDelta.toFixed(2)}% Impact
+                                </span>
+                            )}
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div>
-                <h3 className="text-xl font-bold text-white mb-3">Highest Probability</h3>
-                <div className="h-40 w-full bg-gray-700/50 p-4 rounded-lg">
-                   <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={chartData} layout="vertical" margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
-                            <XAxis type="number" hide domain={[0, 100]} />
-                            <YAxis type="category" dataKey="name" hide />
-                            <Tooltip
-                                cursor={{fill: 'transparent'}}
-                                contentStyle={{ backgroundColor: '#1F2937', border: '1px solid #4B5563', borderRadius: '0.5rem' }}
-                                labelStyle={{ color: '#E5E7EB' }}
-                                formatter={(value) => [`${(value as number).toFixed(2)}%`, 'Probability']}
-                            />
-                            <Bar dataKey="value" stackId="a" fill="#22d3ee" radius={[4, 0, 0, 4]}>
-                                <Cell fill="#22d3ee" />
-                            </Bar>
-                             <Bar dataKey="remaining" stackId="a" fill="#4b5563" radius={[0, 4, 4, 0]}>
-                                <Cell fill="#4b5563" />
-                            </Bar>
-                        </BarChart>
-                    </ResponsiveContainer>
+            {/* Leverage Leaderboard */}
+            <div className="bg-gray-800/80 rounded-lg border border-gray-700 p-6">
+                <h4 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 15.293 6.293A1 1 0 0117 7H12z" clipRule="evenodd" />
+                    </svg>
+                    Leverage Analysis (Room for Improvement)
+                </h4>
+                <p className="text-sm text-gray-400 mb-4">Identifying the "Weakest Links": Variables at the top have the lowest current probability and offer the highest ROI for improvement efforts.</p>
+                
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm text-gray-300">
+                        <thead className="bg-gray-700/50 text-xs uppercase text-gray-400">
+                            <tr>
+                                <th className="px-4 py-3 rounded-tl-lg">Variable</th>
+                                <th className="px-4 py-3">Selected State</th>
+                                <th className="px-4 py-3">Current Prob.</th>
+                                <th className="px-4 py-3 rounded-tr-lg">Improvement Potential</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-700">
+                            {leverageSorted.map((item, idx) => {
+                                const gap = 100 - item.baseProbability;
+                                return (
+                                    <tr key={idx} className="hover:bg-gray-700/30 transition">
+                                        <td className="px-4 py-3 font-medium text-white">{item.variableName}</td>
+                                        <td className="px-4 py-3 text-gray-400">{item.stateName}</td>
+                                        <td className="px-4 py-3 font-mono">{item.baseProbability}%</td>
+                                        <td className="px-4 py-3">
+                                            <div className="flex items-center gap-2">
+                                                <div className="flex-grow bg-gray-600 h-2 rounded-full max-w-[100px]">
+                                                    <div 
+                                                        className="h-2 rounded-full bg-gradient-to-r from-yellow-500 to-red-500" 
+                                                        style={{ width: `${gap}%` }}
+                                                    ></div>
+                                                </div>
+                                                <span className="text-xs text-yellow-500">+{gap}% avail</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
                 </div>
-                 <p className="text-center text-4xl font-bold mt-2">{(result.highestProbability * 100).toFixed(2)}%</p>
             </div>
 
+            {/* AI Insights Section */}
             {insights && (
-                <div>
-                    <h3 className="text-xl font-bold text-white mb-3 flex items-center">
+                <div className="mt-8">
+                    <h3 className="text-xl font-bold text-white mb-3 flex items-center border-t border-gray-700 pt-6">
                         <svg className="w-6 h-6 mr-2 text-cyan-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
                            <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904 9 18.75l-.813-2.846a4.5 4.5 0 0 0-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 0 0 3.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 0 0 3.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 0 0-3.09 3.09ZM18.259 8.715 18 9.75l-.259-1.035a3.375 3.375 0 0 0-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 0 0 2.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 0 0 2.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 0 0-2.456 2.456Z" />
                         </svg>
                         Gemini Strategic Insights
                     </h3>
-                    <div className="prose prose-invert bg-gray-700/50 p-4 rounded-lg text-gray-300">
+                    <div className="prose prose-invert bg-gray-700/50 p-6 rounded-lg text-gray-300 shadow-inner border border-gray-600/50">
                         {renderMarkdown(insights)}
                     </div>
                 </div>

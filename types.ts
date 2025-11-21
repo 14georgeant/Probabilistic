@@ -21,6 +21,7 @@ export interface AnalysisResult {
   bestCombination: {
     variableName: string;
     stateName: string;
+    baseProbability: number; // The raw probability (0-100) of this specific state choice
   }[];
   highestProbability: number; // Stored as 0-1
   outcomeName: string;

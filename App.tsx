@@ -100,11 +100,14 @@ const App: React.FC = () => {
 
         try {
             // Local Analysis
-            const combinations: { combination: { variableName: string; stateName: string; }[]; probability: number; }[] = [];
+            // Defines the structure for internal calculation
+            type ComboItem = { variableName: string; stateName: string; baseProbability: number };
+            
+            const combinations: { combination: ComboItem[]; probability: number; }[] = [];
             
             const generateCombinations = (
                 index: number,
-                currentCombination: { variableName: string; stateName: string; }[],
+                currentCombination: ComboItem[],
                 currentProbability: number
             ) => {
                 if (index === variables.length) {
@@ -115,12 +118,12 @@ const App: React.FC = () => {
                 const variable = variables[index];
                 for (const state of variable.states) {
                     const outcome = state.outcomes.find(o => o.name.toLowerCase() === targetOutcomeName.trim().toLowerCase());
-                    const outcomeProbability = outcome ? outcome.probability / 100 : 0;
+                    const outcomeProbability = outcome ? outcome.probability : 0; // Keep as 0-100 for now
 
                     generateCombinations(
                         index + 1,
-                        [...currentCombination, { variableName: variable.name, stateName: state.name }],
-                        currentProbability * outcomeProbability
+                        [...currentCombination, { variableName: variable.name, stateName: state.name, baseProbability: outcomeProbability }],
+                        currentProbability * (outcomeProbability / 100)
                     );
                 }
             };
@@ -246,13 +249,14 @@ const App: React.FC = () => {
                     </div>
                 </div>
                 <div className="bg-gray-800 p-6 rounded-lg shadow-2xl">
-                     <h2 className="text-2xl font-bold mb-4 text-cyan-400">2. Analysis & Insights</h2>
+                     <h2 className="text-2xl font-bold mb-4 text-cyan-400">2. Analysis & Impact</h2>
                      <div className="h-full flex flex-col">
                          {error && <div className="bg-red-900 border border-red-700 text-red-200 p-3 rounded-md mb-4">{error}</div>}
                          <ResultsDisplay 
                             result={analysisResult} 
                             insights={geminiInsights} 
-                            isLoading={isLoading} 
+                            isLoading={isLoading}
+                            variables={variables}
                          />
                      </div>
                 </div>
@@ -268,7 +272,7 @@ const App: React.FC = () => {
                             : 'bg-cyan-600 hover:bg-cyan-500 text-white hover:scale-105'
                         }`}
                     >
-                        {isLoading ? 'Analyzing...' : !isOnline ? 'Offline - Connect to Internet for AI' : 'Find Highest Probability Outcome'}
+                        {isLoading ? 'Analyzing...' : !isOnline ? 'Offline - Connect to Internet for AI' : 'Run Analysis'}
                     </button>
                 </div>
             </footer>
