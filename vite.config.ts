@@ -7,9 +7,8 @@ export default defineConfig(({ mode }) => {
   // Load env file based on `mode` in the current working directory.
   const env = loadEnv(mode, process.cwd(), '');
   
-  // Robustly capture the API key. 
-  // FALLBACK: Use the provided key if env vars are missing (fixes issues on mobile/external devices).
-  const apiKey = env.API_KEY || env.VITE_API_KEY || env.GOOGLE_API_KEY || env.REACT_APP_API_KEY || 'AIzaSyAN62zS0hmDWS6tIU3UnIq3U1xkGKgMNbg';
+  // Robustly capture the API key from environment variables only.
+  const apiKey = env.API_KEY || env.VITE_API_KEY || env.GOOGLE_API_KEY || env.REACT_APP_API_KEY;
 
   return {
     plugins: [react()],

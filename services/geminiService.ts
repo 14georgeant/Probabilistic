@@ -423,4 +423,195 @@ ${JSON.stringify(variableSchema, null, 2)}
             });
         }
 
-        return { variable: variableWithIds
+        return { variable: variableWithIds, sources };
+    } catch (error) {
+        console.error("Error analyzing link:", error);
+        throw new Error(formatGenAIError(error));
+    }
+};
+
+// Chat Creators
+export const createMedicalChat = (): Chat => {
+    const ai = getAiClient();
+    return ai.chats.create({
+        model: "gemini-2.5-flash",
+        config: {
+            systemInstruction: "You are a Medical Research Assistant. Your goal is to help users understand clinical data, symptoms, and medical literature. You must always state that you are an AI and not a doctor. Provide information based on medical consensus. Use the googleSearch tool to find relevant medical journals or studies if needed.",
+            tools: [{ googleSearch: {} }],
+        }
+    });
+};
+
+export const createFinancialChat = (): Chat => {
+    const ai = getAiClient();
+    return ai.chats.create({
+        model: "gemini-2.5-flash",
+        config: {
+            systemInstruction: "You are an ICT (Inner Circle Trader) Financial Analyst. Focus on Price Action, Order Blocks, Fair Value Gaps, and Market Structure. Provide educational analysis on forex, crypto, and indices. Disclaimer: Not financial advice.",
+            tools: [{ googleSearch: {} }],
+        }
+    });
+};
+
+export const createProgrammerChat = (): Chat => {
+    const ai = getAiClient();
+    return ai.chats.create({
+        model: "gemini-2.5-flash",
+        config: {
+            systemInstruction: "You are a Senior Software Engineer and Tech Lead. Assist with architecture decisions, debugging, and library recommendations. Prefer modern, stable, and scalable solutions.",
+            tools: [{ googleSearch: {} }],
+        }
+    });
+};
+
+export const createHealthChat = (): Chat => {
+    const ai = getAiClient();
+    return ai.chats.create({
+        model: "gemini-2.5-flash",
+        config: {
+            systemInstruction: "You are an Elite Sports Scientist and Performance Coach. Provide evidence-based advice on training, nutrition, and recovery. Reference sports science journals where possible.",
+            tools: [{ googleSearch: {} }],
+        }
+    });
+};
+
+// Data Processing
+export const processBatchData = async (inputData: string): Promise<Variable[]> => {
+    const prompt = `
+    Analyze the following raw data (CSV, JSON, or Text) and extract strategic variables for a probabilistic model.
+    
+    Data:
+    ${inputData.substring(0, 10000)}
+
+    Output a JSON array of variables adhering to this schema:
+    [
+        {
+            "name": "Variable Name",
+            "states": [
+                { "name": "State A", "outcomes": [{ "name": "Success", "probability": 50 }] }
+            ]
+        }
+    ]
+    `;
+    
+    const listSchema = {
+        type: Type.ARRAY,
+        items: variableSchema
+    };
+
+    try {
+        const ai = getAiClient();
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: listSchema
+            }
+        });
+
+        const text = response.text ?? '[]';
+        const parsed = JSON.parse(text);
+        
+        return parsed.map((v: any) => ({
+            id: generateUUID(),
+            name: v.name,
+            states: v.states.map((s: any) => ({
+                id: generateUUID(),
+                name: s.name,
+                outcomes: s.outcomes.map((o: any) => ({
+                    id: generateUUID(),
+                    name: o.name,
+                    probability: o.probability
+                }))
+            }))
+        }));
+    } catch (e) {
+        console.error("Batch processing failed", e);
+        throw new Error(formatGenAIError(e));
+    }
+};
+
+// Code Generation
+export const generateCppAdaptivityCode = async (variables: Variable[]): Promise<string> => {
+    const modelDesc = JSON.stringify(variables, null, 2);
+    const prompt = `
+    You are an expert C++ Systems Engineer.
+    Generate a high-performance, thread-safe C++17 class named 'AdaptiveOptimizer' that models the following probabilistic state machine.
+    
+    The code should:
+    1. Define structs/classes for these Variables and States.
+    2. Implement a 'calculateOptimalPath()' method using dynamic programming or a similar efficient algorithm.
+    3. Include comments explaining the logic.
+    4. Be ready for embedded systems (minimal dependencies).
+
+    Model Definition:
+    ${modelDesc}
+    `;
+
+    try {
+        const ai = getAiClient();
+        const response = await ai.models.generateContent({
+            model: "gemini-3-pro-preview", 
+            contents: prompt
+        });
+        return response.text ?? "// Error generating code";
+    } catch (e) {
+         throw new Error(formatGenAIError(e));
+    }
+};
+
+// Multimodal Analysis
+export const analyzePriceAction = async (description: string, imageBase64?: string, mimeType?: string): Promise<Variable> => {
+    const parts: any[] = [];
+    
+    if (imageBase64 && mimeType) {
+        parts.push({
+            inlineData: {
+                data: imageBase64,
+                mimeType: mimeType
+            }
+        });
+    }
+    
+    parts.push({
+        text: `Analyze this financial context (image and/or description). 
+        Description: ${description}
+        
+        Identify the most critical factor driving price action (e.g., "Market Structure", "Indicator Status", "Candle Pattern").
+        Create a single Variable representing this factor with 2-3 States (e.g., "Bullish", "Bearish", "Neutral") and estimated probabilities based on the visual/text evidence.
+        
+        Return ONLY JSON adhering to the Variable schema.`
+    });
+
+    try {
+        const ai = getAiClient();
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: { parts },
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: variableSchema
+            }
+        });
+
+        const text = response.text ?? '{}';
+        const parsed = JSON.parse(text);
+
+        return {
+            id: generateUUID(),
+            name: parsed.name,
+            states: parsed.states.map((state: any) => ({
+                id: generateUUID(),
+                name: state.name,
+                outcomes: state.outcomes.map((outcome: any) => ({
+                    id: generateUUID(),
+                    name: outcome.name,
+                    probability: outcome.probability,
+                }))
+            }))
+        };
+    } catch (e) {
+        throw new Error(formatGenAIError(e));
+    }
+};
