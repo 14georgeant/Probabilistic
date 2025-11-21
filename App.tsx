@@ -14,6 +14,7 @@ import FinancialChat from './components/FinancialChat';
 import ProgrammerChat from './components/ProgrammerChat';
 import TradaysCalendar from './components/TradaysCalendar';
 import CodeExportModal from './components/CodeExportModal';
+import NotebookSection from './components/NotebookSection';
 
 // Robust UUID generator that works in non-secure contexts (HTTP) where crypto.randomUUID might be undefined
 const generateUUID = () => {
@@ -677,86 +678,63 @@ const App: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Financial Mode Extras */}
+                {/* NotebookLM Sections */}
                 {appMode === 'financial' && (
-                    <div className="mt-8 space-y-8 animate-in slide-in-from-bottom duration-700">
-                        
-                        {/* NotebookLM Integration Card */}
-                        <div className="bg-gray-800 rounded-xl border border-emerald-500/30 p-1 shadow-lg overflow-hidden">
-                             <div className="bg-gray-900/50 p-6 rounded-lg relative overflow-hidden group">
-                                {/* Background Decoration */}
-                                <div className="absolute -right-10 -top-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-3xl group-hover:bg-emerald-500/20 transition-colors"></div>
-                                
-                                <div className="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
-                                    <div className="flex items-start gap-5">
-                                        <div className="w-12 h-12 bg-emerald-900/80 rounded-xl flex items-center justify-center border border-emerald-500/50 shadow-inner shrink-0">
-                                             <svg className="w-6 h-6 text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
-                                        </div>
-                                        <div>
-                                            <h3 className="text-lg font-bold text-white flex items-center gap-3">
-                                                NotebookLM Strategy Core
-                                                <span className="px-2 py-0.5 rounded text-[10px] font-black tracking-wider bg-emerald-500 text-black">CONNECTED</span>
-                                            </h3>
-                                            <p className="text-emerald-200/70 text-sm mt-1 leading-relaxed max-w-2xl">
-                                                Access the dedicated deep-learning knowledge base. Contains processed financial whitepapers, historical backtest data, and granular ICT strategy documentation referenced by the AI Adviser.
-                                            </p>
-                                        </div>
-                                    </div>
-                                    
-                                    <a 
-                                        href="https://notebooklm.google.com/notebook/f5f77cf4-d41e-4937-9b67-2a718b601c2c"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="whitespace-nowrap px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold rounded-lg shadow-lg shadow-emerald-900/20 transition-all transform hover:-translate-y-0.5 flex items-center gap-2 group/btn"
-                                    >
-                                        <span>Launch Notebook</span>
-                                        <svg className="w-4 h-4 group-hover/btn:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                                    </a>
-                                </div>
-                             </div>
-                        </div>
-
-                        <TradaysCalendar />
-                    </div>
+                    <NotebookSection 
+                        mode="financial"
+                        title="Financial Strategy Core"
+                        description="Access the dedicated deep-learning knowledge base. Contains processed financial whitepapers, historical backtest data, and granular ICT strategy documentation."
+                        url="https://notebooklm.google.com/notebook/f5f77cf4-d41e-4937-9b67-2a718b601c2c"
+                        addons={[
+                            {
+                                name: "Economic Calendar",
+                                description: "Live data for major economic events.",
+                                icon: <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>,
+                                url: "https://www.forexfactory.com/calendar"
+                            },
+                            {
+                                name: "Fed Rates Watch",
+                                description: "Interest rate probabilities.",
+                                icon: <svg className="w-5 h-5 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" /></svg>,
+                                url: "https://www.cmegroup.com/markets/interest-rates/cme-fedwatch-tool.html"
+                            }
+                        ]}
+                    />
                 )}
 
-                {/* Programmer Mode Extras */}
                 {appMode === 'programmer' && (
-                     <div className="mt-8 space-y-8 animate-in slide-in-from-bottom duration-700">
-                        {/* Programmer Finds Notebook Card */}
-                        <div className="bg-gray-800 rounded-xl border border-lime-500/30 p-1 shadow-lg overflow-hidden">
-                             <div className="bg-gray-900/50 p-6 rounded-lg relative overflow-hidden group">
-                                {/* Background Decoration */}
-                                <div className="absolute -right-10 -top-10 w-40 h-40 bg-lime-500/10 rounded-full blur-3xl group-hover:bg-lime-500/20 transition-colors"></div>
-                                
-                                <div className="flex flex-col md:flex-row items-center justify-between gap-6 relative z-10">
-                                    <div className="flex items-start gap-5">
-                                        <div className="w-12 h-12 bg-lime-900/80 rounded-xl flex items-center justify-center border border-lime-500/50 shadow-inner shrink-0">
-                                             <svg className="w-6 h-6 text-lime-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>
-                                        </div>
-                                        <div>
-                                            <h3 className="text-lg font-bold text-white flex items-center gap-3">
-                                                Programmer Finds (Knowledge Base)
-                                                <span className="px-2 py-0.5 rounded text-[10px] font-black tracking-wider bg-lime-500 text-black">ONLINE</span>
-                                            </h3>
-                                            <p className="text-lime-200/70 text-sm mt-1 leading-relaxed max-w-2xl">
-                                                Explore curated technical resources, coding patterns, and research papers sourced from the "Programmer Finds" notebook. Supplement your architecture decisions with fun, deep-dive add-ons.
-                                            </p>
-                                        </div>
-                                    </div>
-                                    
-                                    <a 
-                                        href="https://notebooklm.google.com/notebook/ad175927-4682-45f7-909b-778e6362b41f"
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="whitespace-nowrap px-5 py-2.5 bg-lime-600 hover:bg-lime-500 text-white text-sm font-bold rounded-lg shadow-lg shadow-lime-900/20 transition-all transform hover:-translate-y-0.5 flex items-center gap-2 group/btn"
-                                    >
-                                        <span>Access Notebook</span>
-                                        <svg className="w-4 h-4 group-hover/btn:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
-                                    </a>
-                                </div>
-                             </div>
-                        </div>
+                    <NotebookSection 
+                        mode="programmer"
+                        title="Programmer Finds Knowledge Base"
+                        description="Explore curated technical resources, coding patterns, and research papers sourced from the 'Programmer Finds' notebook. Supplement your architecture decisions with fun, deep-dive add-ons."
+                        url="https://notebooklm.google.com/notebook/ad175927-4682-45f7-909b-778e6362b41f"
+                        addons={[
+                            {
+                                name: "Dark Mode Patterns",
+                                description: "UI/UX inspiration for dark-themed apps.",
+                                icon: <svg className="w-5 h-5 text-lime-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" /></svg>,
+                                url: "https://dribbble.com/search/dark-mode"
+                            },
+                            {
+                                name: "Lofi Beats for Coding",
+                                description: "Focus music to boost productivity.",
+                                icon: <svg className="w-5 h-5 text-lime-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" /></svg>,
+                                url: "https://www.youtube.com/watch?v=jfKfPfyJRdk"
+                            },
+                            {
+                                name: "Algorithm Visualizer",
+                                description: "Interactive visualizations of complex algos.",
+                                icon: <svg className="w-5 h-5 text-lime-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" /></svg>,
+                                url: "https://visualgo.net/en"
+                            }
+                        ]}
+                    />
+                )}
+
+                {/* Financial Mode Extras - Calendar */}
+                {appMode === 'financial' && (
+                    <div className="mt-8">
+                        <TradaysCalendar />
                     </div>
                 )}
             </main>
