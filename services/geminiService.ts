@@ -174,15 +174,19 @@ const variableSchema = {
 export const analyzeLinkForVariables = async (url: string): Promise<{ variable: Variable; sources: { title: string; uri: string }[] }> => {
     // When using Google Search tool, we cannot use responseSchema.
     // We must explicitly instruct the model to return JSON in the prompt.
-    const prompt = `You are a strategic analyst. A user has provided a URL. Your task is to analyze the content and purpose of the website at this URL and propose a new, relevant variable for their probabilistic model.
+    const prompt = `You are a strategic analyst. A user has provided a URL. Your task is to analyze the content, purpose, and context of the link to propose a new, relevant variable for their probabilistic model.
 
 URL provided by user: ${url}
 
 **INSTRUCTIONS:**
-1. Use **Google Search** to find information about the website at the provided URL. Understand its business model, products, or primary goal.
+1. Use **Google Search** to find information about the link.
+   - If it is a **Product/Business** page: Analyze the business model, market fit, or pricing strategy.
+   - If it is a **YouTube Video**: Analyze the video content, title, and topic. Determine variables like "Thumbnail CTR Potential", "Viewer Retention Strategy", or "Topic Virality".
+   - If it is a **Social Media Post (X/Twitter/Facebook)**: Analyze the text/media. Determine variables like "Engagement Potential", "Hashtag Strategy", or "Controversy Level".
+   - If it is a **News/Article**: Analyze the sentiment or impact of the event described.
 2. Based on your research, identify a single, core strategic variable relevant to this entity.
 3. Define 2-3 distinct states (strategies/options) for this variable.
-4. For each state, estimate the probability (0-100) of achieving a 'Success' outcome based on general market knowledge for this type of business.
+4. For each state, estimate the probability (0-100) of achieving a 'Success' outcome (high engagement, conversion, etc.) based on general market knowledge or specific data found about the link.
 
 **OUTPUT FORMAT:**
 You must return ONLY a valid JSON object. Do not include markdown formatting (like \`\`\`json) or any explanatory text. The JSON must strictly adhere to this structure:

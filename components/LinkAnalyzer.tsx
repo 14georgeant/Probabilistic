@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { analyzeLinkForVariables } from '../services/geminiService';
 import { Variable } from '../types';
@@ -68,14 +67,14 @@ const LinkAnalyzer: React.FC<LinkAnalyzerProps> = ({ onVariableGenerated, onSecu
     return (
         <div className="flex flex-col h-full">
             <p className="text-sm text-gray-400 mb-4">
-                Paste a link (e.g., product page, social media profile) and the AI will use Google Search to research it and suggest a relevant strategic variable.
+                Paste a link (e.g., <strong>YouTube video, X/Twitter post, Facebook page</strong>) and the AI will use Google Search to research it and suggest a relevant strategic variable.
             </p>
             <div className="flex gap-2 mb-4">
                 <input
                     type="url"
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
-                    placeholder={isOnline ? "https://your-website.com/product" : "Offline - Feature Unavailable"}
+                    placeholder={isOnline ? "https://twitter.com/user/status/..." : "Offline - Feature Unavailable"}
                     className={`flex-grow bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white placeholder-gray-400 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition ${!isOnline ? 'opacity-50 cursor-not-allowed' : ''}`}
                     disabled={isLoading || !isOnline}
                 />
@@ -88,7 +87,7 @@ const LinkAnalyzer: React.FC<LinkAnalyzerProps> = ({ onVariableGenerated, onSecu
                         : 'bg-cyan-600 hover:bg-cyan-500'
                     }`}
                 >
-                    {isLoading ? '...' : 'Research & Generate'}
+                    {isLoading ? '...' : 'Research'}
                 </button>
             </div>
             
@@ -98,8 +97,8 @@ const LinkAnalyzer: React.FC<LinkAnalyzerProps> = ({ onVariableGenerated, onSecu
                 {isLoading && (
                      <div className="flex flex-col items-center justify-center h-full text-center">
                         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500 mb-4"></div>
-                        <p className="text-md font-semibold text-gray-300">Researching Link...</p>
-                        <p className="text-xs text-gray-400 mt-2">Using Google Search Grounding to find live data.</p>
+                        <p className="text-md font-semibold text-gray-300">Analyzing Content...</p>
+                        <p className="text-xs text-gray-400 mt-2">Searching for engagement & virality signals...</p>
                     </div>
                 )}
                 {suggestedVariable && (
