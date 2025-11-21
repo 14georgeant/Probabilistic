@@ -100,7 +100,7 @@ const LinkAnalyzer: React.FC<LinkAnalyzerProps> = ({ onVariableGenerated, onSecu
             </p>
             <div className="flex gap-2 mb-4">
                 <input
-                    type="url"
+                    type="text" 
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
                     placeholder={isOnline ? placeholderText : "Offline - Feature Unavailable"}

@@ -241,6 +241,7 @@ export const analyzeLinkForVariables = async (
         - If it's a **Crypto/Asset**: Variable name: "Volatility" or "Adoption Rate". States: "High Growth", "Correction", "Stagnation".
         - If it's **News**: Variable name: "Economic Impact". States: "Positive Shock", "Negative Shock", "Neutral".
         - If it's **General Financial Info**: Analyze the core financial concept. Variable name: "Key Financial Driver".
+        - **CATCH-ALL**: If the link is valid but doesn't fit above categories, analyze it as a general financial factor or risk variable.
         - Estimate probabilities based on the sentiment of the content.
         `;
     } else if (mode === 'health') {
@@ -251,6 +252,7 @@ export const analyzeLinkForVariables = async (
         - If it's a **Workout Video**: Variable name: "Training Stimulus". States: "Hypertrophy (Muscle Gain)", "Endurance", "Active Recovery".
         - If it's **Supplement/Gear**: Variable name: "Performance Aid". States: "Effective", "Placebo/Low Impact".
         - If it's **General Health/Fitness Content**: Analyze the key factor influencing performance or health. Variable name examples: "Sleep Quality", "Stress Management", "Recovery".
+        - **CATCH-ALL**: If the link is valid but doesn't fit above, analyze its potential impact on health/performance.
         `;
     } else if (mode === 'medical') {
         instructions = `
@@ -259,6 +261,7 @@ export const analyzeLinkForVariables = async (
         - If it's a **Clinical Study**: Variable name: "Treatment Efficacy" or "Drug Response". States: "Effective (High Conf)", "Inconclusive", "Adverse Effects".
         - If it's **Symptom Info**: Variable name: "Disease Probability". States: "High Likelihood", "Low Likelihood".
         - If it's **General Medical Info**: Extract the most relevant prognostic factor or risk variable.
+        - **CATCH-ALL**: If the link is valid medical info, analyze the most relevant clinical factor.
         - PRIORITIZE ACCURACY based on the text.
         `;
     } else {

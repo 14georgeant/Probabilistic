@@ -74,8 +74,8 @@ const VariableInputList: React.FC<VariableInputListProps> = ({ variables, setVar
                                     ...s.outcomes,
                                     {
                                         id: crypto.randomUUID(),
-                                        name: 'New Outcome',
-                                        probability: 0
+                                        name: 'Success',
+                                        probability: 50
                                     }
                                 ]
                             };
@@ -267,60 +267,62 @@ const VariableInputList: React.FC<VariableInputListProps> = ({ variables, setVar
                                  </div>
                                  
                                  {/* Outcomes Area */}
-                                 <div className="p-3 bg-black/10">
+                                 <div className="p-3 bg-black/20 rounded-b-lg">
+                                     {/* Outcomes Header - improved */}
+                                     <div className="grid grid-cols-12 gap-4 px-2 mb-2 text-[10px] uppercase font-bold text-gray-500 tracking-wider">
+                                         <div className="col-span-7">Outcome Scenario</div>
+                                         <div className="col-span-5 text-right pr-8">Probability</div>
+                                     </div>
+
                                      <div className="space-y-2">
                                          {state.outcomes.map((outcome) => {
                                              const isOutcomeNameEmpty = !outcome.name.trim();
                                              return (
-                                             <div key={outcome.id} className={`flex items-center gap-3 bg-gray-800/50 p-2 rounded border transition-all group/outcome ${isOutcomeNameEmpty ? 'border-red-500/30 bg-red-900/5' : 'border-transparent hover:border-gray-600'}`}>
-                                                 {/* Outcome Name */}
-                                                 <div className="flex-grow relative">
-                                                     <input 
-                                                         value={outcome.name}
-                                                         onChange={(e) => updateOutcome(variable.id, state.id, outcome.id, { name: e.target.value })}
-                                                         className={`w-full bg-transparent text-sm transition-colors focus:outline-none ${
-                                                            isOutcomeNameEmpty ? 'text-red-300 placeholder-red-400/50' : 'text-gray-300 placeholder-gray-600 focus:text-white'
-                                                         }`}
-                                                         placeholder="Outcome Name"
-                                                     />
-                                                     {isOutcomeNameEmpty && (
-                                                         <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" title="Required">
-                                                            <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></div>
-                                                         </div>
-                                                     )}
-                                                 </div>
-
-                                                 {/* Visual Separator */}
-                                                 <div className="w-px h-4 bg-gray-700"></div>
-
-                                                 {/* Probability Controls */}
-                                                 <div className="flex items-center gap-3 w-48">
-                                                     <input 
-                                                         type="range" min="0" max="100"
-                                                         value={outcome.probability}
-                                                         onChange={(e) => updateOutcome(variable.id, state.id, outcome.id, { probability: parseInt(e.target.value) })}
-                                                         className="flex-grow h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-500 hover:accent-cyan-400"
-                                                         title="Adjust Probability"
-                                                     />
-                                                     <div className="relative w-10">
+                                             <div key={outcome.id} className="group/outcome relative flex items-center bg-gray-800/40 rounded border border-transparent hover:border-gray-600 transition-all overflow-hidden">
+                                                 {/* Progress Bar BG */}
+                                                 <div 
+                                                    className="absolute inset-y-0 left-0 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 transition-all duration-500 pointer-events-none" 
+                                                    style={{ width: `${outcome.probability}%` }}
+                                                 />
+                                                 
+                                                 <div className="relative z-10 grid grid-cols-12 gap-4 w-full p-2 items-center">
+                                                     {/* Name Input */}
+                                                     <div className="col-span-7 flex items-center gap-2">
+                                                         <div className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${isOutcomeNameEmpty ? 'bg-red-500' : 'bg-cyan-500'}`}></div>
                                                          <input 
-                                                             type="number" min="0" max="100"
+                                                             value={outcome.name}
+                                                             onChange={(e) => updateOutcome(variable.id, state.id, outcome.id, { name: e.target.value })}
+                                                             className={`w-full bg-transparent text-sm focus:outline-none ${isOutcomeNameEmpty ? 'placeholder-red-400/50 text-red-300' : 'placeholder-gray-600 text-gray-200'}`}
+                                                             placeholder="Outcome Name (e.g. Success)"
+                                                         />
+                                                     </div>
+
+                                                     {/* Probability Controls */}
+                                                     <div className="col-span-5 flex items-center justify-end gap-3">
+                                                         <input 
+                                                             type="range" min="0" max="100"
                                                              value={outcome.probability}
                                                              onChange={(e) => updateOutcome(variable.id, state.id, outcome.id, { probability: parseInt(e.target.value) })}
-                                                             className="w-full bg-transparent text-right font-mono text-sm text-cyan-400 focus:outline-none"
+                                                             className="w-20 h-1 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-500 hidden sm:block"
                                                          />
-                                                         <span className="absolute top-0 right-[-8px] text-[10px] text-gray-600">%</span>
+                                                         <div className="relative w-10">
+                                                             <input 
+                                                                 type="number" min="0" max="100"
+                                                                 value={outcome.probability}
+                                                                 onChange={(e) => updateOutcome(variable.id, state.id, outcome.id, { probability: parseInt(e.target.value) })}
+                                                                 className="w-full bg-transparent text-right font-mono text-sm text-cyan-400 focus:outline-none"
+                                                             />
+                                                             <span className="absolute top-0 right-[-8px] text-[10px] text-gray-600 pointer-events-none">%</span>
+                                                         </div>
+                                                         
+                                                         <button 
+                                                            onClick={() => removeOutcome(variable.id, state.id, outcome.id)} 
+                                                            className="text-gray-600 hover:text-red-400 opacity-0 group-hover/outcome:opacity-100 transition-opacity p-1"
+                                                         >
+                                                             <XIcon />
+                                                         </button>
                                                      </div>
                                                  </div>
-
-                                                 {/* Remove Outcome */}
-                                                 <button 
-                                                    onClick={() => removeOutcome(variable.id, state.id, outcome.id)} 
-                                                    className="text-gray-600 hover:text-red-400 opacity-0 group-hover/outcome:opacity-100 focus:opacity-100 transition-opacity p-1"
-                                                    title="Remove Outcome"
-                                                 >
-                                                     <XIcon />
-                                                 </button>
                                              </div>
                                              );
                                          })}
@@ -330,7 +332,7 @@ const VariableInputList: React.FC<VariableInputListProps> = ({ variables, setVar
                                         onClick={() => addOutcome(variable.id, state.id)} 
                                         className="mt-3 w-full py-1.5 text-xs font-bold text-gray-500 hover:text-cyan-400 border border-dashed border-gray-700 hover:border-cyan-500/30 rounded hover:bg-cyan-500/5 transition-all flex items-center justify-center gap-1"
                                     >
-                                         <PlusIcon className="w-3 h-3" /> Add Outcome
+                                         <PlusIcon className="w-3 h-3" /> Add Outcome Scenario
                                      </button>
                                  </div>
                              </div>
