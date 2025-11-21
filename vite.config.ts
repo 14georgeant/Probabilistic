@@ -13,6 +13,9 @@ export default defineConfig(({ mode }) => {
     define: {
       // This maps your existing 'process.env.API_KEY' code to the actual environment variable provided by Vercel/Netlify
       'process.env.API_KEY': JSON.stringify(env.API_KEY)
+    },
+    build: {
+      chunkSizeWarningLimit: 1600
     }
   };
 });
