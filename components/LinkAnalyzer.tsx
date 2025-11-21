@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { analyzeLinkForVariables } from '../services/geminiService';
 import { Variable } from '../types';
@@ -6,9 +7,10 @@ interface LinkAnalyzerProps {
     onVariableGenerated: (variable: Variable) => void;
     onSecurityRisk: () => void;
     isOnline: boolean;
+    mode?: 'general' | 'financial';
 }
 
-const LinkAnalyzer: React.FC<LinkAnalyzerProps> = ({ onVariableGenerated, onSecurityRisk, isOnline }) => {
+const LinkAnalyzer: React.FC<LinkAnalyzerProps> = ({ onVariableGenerated, onSecurityRisk, isOnline, mode = 'general' }) => {
     const [url, setUrl] = useState<string>('');
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<string>('');
@@ -26,8 +28,6 @@ const LinkAnalyzer: React.FC<LinkAnalyzerProps> = ({ onVariableGenerated, onSecu
             return;
         }
         try {
-            // Use the URL constructor for robust validation.
-            // It requires a protocol like https://
             new URL(url);
         } catch (e) {
             setError('Please enter a valid URL format (e.g., https://example.com).');
@@ -40,7 +40,7 @@ const LinkAnalyzer: React.FC<LinkAnalyzerProps> = ({ onVariableGenerated, onSecu
         setSources([]);
 
         try {
-            const { variable, sources } = await analyzeLinkForVariables(url);
+            const { variable, sources } = await analyzeLinkForVariables(url, mode as 'general' | 'financial');
             setSuggestedVariable(variable);
             setSources(sources);
         } catch (e) {
@@ -64,17 +64,24 @@ const LinkAnalyzer: React.FC<LinkAnalyzerProps> = ({ onVariableGenerated, onSecu
         }
     };
 
+    const placeholderText = mode === 'financial' 
+        ? "https://bloomberg.com/news/..." 
+        : "https://instagram.com/p/...";
+
     return (
         <div className="flex flex-col h-full">
             <p className="text-sm text-gray-400 mb-4">
-                Paste a link (e.g., <strong>Instagram, TikTok, YouTube, X/Twitter</strong>) and the AI will research it to suggest a relevant strategic variable.
+                {mode === 'financial' 
+                 ? <span>Paste a link to a <strong>Stock, Asset, or Economic News</strong> and the AI will analyze its impact on your portfolio.</span>
+                 : <span>Paste a link (e.g., <strong>Instagram, TikTok, YouTube</strong>) and the AI will research it to suggest a relevant strategic variable.</span>
+                }
             </p>
             <div className="flex gap-2 mb-4">
                 <input
                     type="url"
                     value={url}
                     onChange={(e) => setUrl(e.target.value)}
-                    placeholder={isOnline ? "https://instagram.com/p/..." : "Offline - Feature Unavailable"}
+                    placeholder={isOnline ? placeholderText : "Offline - Feature Unavailable"}
                     className={`flex-grow bg-gray-700 border border-gray-600 rounded-md py-2 px-3 text-white placeholder-gray-400 focus:ring-2 focus:ring-cyan-500 focus:border-cyan-500 transition ${!isOnline ? 'opacity-50 cursor-not-allowed' : ''}`}
                     disabled={isLoading || !isOnline}
                 />
@@ -84,7 +91,7 @@ const LinkAnalyzer: React.FC<LinkAnalyzerProps> = ({ onVariableGenerated, onSecu
                     className={`text-white font-bold py-2 px-4 rounded-lg transition-colors ${
                         isLoading || !isOnline 
                         ? 'bg-gray-600 cursor-not-allowed' 
-                        : 'bg-cyan-600 hover:bg-cyan-500'
+                        : `${mode === 'financial' ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-cyan-600 hover:bg-cyan-500'}`
                     }`}
                 >
                     {isLoading ? '...' : 'Research'}
@@ -96,16 +103,16 @@ const LinkAnalyzer: React.FC<LinkAnalyzerProps> = ({ onVariableGenerated, onSecu
             <div className="flex-grow mt-4">
                 {isLoading && (
                      <div className="flex flex-col items-center justify-center h-full text-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-cyan-500 mb-4"></div>
+                        <div className={`animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 ${mode === 'financial' ? 'border-emerald-500' : 'border-cyan-500'} mb-4`}></div>
                         <p className="text-md font-semibold text-gray-300">Analyzing Content...</p>
-                        <p className="text-xs text-gray-400 mt-2">Evaluating engagement & virality...</p>
+                        <p className="text-xs text-gray-400 mt-2">Evaluating {mode === 'financial' ? 'financial indicators' : 'engagement & virality'}...</p>
                     </div>
                 )}
                 {suggestedVariable && (
                     <div className="bg-gray-700/50 p-4 rounded-lg border border-gray-600 animate-fade-in">
                         <h4 className="text-md font-semibold text-gray-200 mb-3">AI Suggestion:</h4>
                         <div className="bg-gray-900/50 p-4 rounded-lg">
-                             <p className="text-lg font-bold text-cyan-300">{suggestedVariable.name}</p>
+                             <p className={`text-lg font-bold ${mode === 'financial' ? 'text-emerald-300' : 'text-cyan-300'}`}>{suggestedVariable.name}</p>
                              <div className="mt-3 space-y-2 pl-4 border-l-2 border-gray-600">
                                 {suggestedVariable.states.map(state => (
                                     <div key={state.id} className="flex justify-between items-center text-sm">
@@ -126,7 +133,7 @@ const LinkAnalyzer: React.FC<LinkAnalyzerProps> = ({ onVariableGenerated, onSecu
                                                 href={source.uri} 
                                                 target="_blank" 
                                                 rel="noopener noreferrer" 
-                                                className="text-xs text-cyan-400 hover:text-cyan-300 hover:underline truncate block flex items-center"
+                                                className={`text-xs ${mode === 'financial' ? 'text-emerald-400 hover:text-emerald-300' : 'text-cyan-400 hover:text-cyan-300'} hover:underline truncate block flex items-center`}
                                             >
                                                 <svg className="w-3 h-3 mr-1 inline-block" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 17.93c-3.95-.49-7-3.85-7-7.93 0-.62.08-1.21.21-1.79L9 15v1c0 1.1.9 2 2 2v1.93zm6.9-2.54c-.26-.81-1-1.39-1.9-1.39h-1v-3c0-.55-.45-1-1-1H8v-2h2c.55 0 1-.45 1-1V7h2c1.1 0 2-.9 2-2v-.41c2.93 1.19 5 4.06 5 7.41 0 2.08-.8 3.97-2.1 5.39z"/></svg>
                                                 {source.title}
@@ -139,7 +146,7 @@ const LinkAnalyzer: React.FC<LinkAnalyzerProps> = ({ onVariableGenerated, onSecu
 
                         <button
                             onClick={handleAddVariable}
-                            className="mt-4 w-full bg-green-600 hover:bg-green-500 text-white font-bold py-2 px-4 rounded-lg transition"
+                            className={`mt-4 w-full text-white font-bold py-2 px-4 rounded-lg transition ${mode === 'financial' ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-green-600 hover:bg-green-500'}`}
                         >
                             + Add Variable to Model
                         </button>

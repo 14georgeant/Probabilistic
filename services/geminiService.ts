@@ -57,7 +57,11 @@ ${text}
 };
 
 
-export const generateAnalysisSummary = async (variables: Variable[], result: AnalysisResult): Promise<string> => {
+export const generateAnalysisSummary = async (
+    variables: Variable[], 
+    result: AnalysisResult, 
+    mode: 'general' | 'financial' = 'general'
+): Promise<string> => {
 
   const variablesDescription = variables.map(v => 
     `- **${v.name}**:\n` +
@@ -67,57 +71,68 @@ export const generateAnalysisSummary = async (variables: Variable[], result: Ana
   ).join('\n');
 
   const resultDescription = 
-    `The optimal combination of choices to achieve the outcome "${result.outcomeName}" is:\n` +
+    `The optimal combination to achieve "${result.outcomeName}" is:\n` +
     result.bestCombination.map(c => `- For **${c.variableName}**, choose **${c.stateName}**`).join('\n') +
-    `\nThis yields a final probability of success of **${(result.highestProbability * 100).toFixed(2)}%**.`;
+    `\nFinal probability: **${(result.highestProbability * 100).toFixed(2)}%**.`;
 
-  const prompt = `You are a senior product analyst and technical advisor. Your goal is to provide unbiased, constructive, and actionable advice to help a user improve their strategy and increase their probability of success. You are presented with a probabilistic model created by the user. Your task is to analyze the model and the calculated optimal path, then provide a clear, actionable, and insightful summary with workable fixes.
+  let systemPrompt = "";
 
-**CONTEXT:**
-The user has defined a set of independent variables, each with different states. Each state has a certain probability of leading to a desired outcome. The system has calculated the combination of states that yields the highest overall probability of success.
+  if (mode === 'financial') {
+      systemPrompt = `You are a Senior CFA-Certified Financial Adviser and Wealth Manager. Your goal is to analyze the user's probabilistic financial model and provide fiduciary-level strategic advice.
+      
+      **Role:** Financial Adviser / Wealth Manager.
+      **Tone:** Professional, Objective, Risk-Aware, Insightful.
+      
+      **Structure your advice as follows:**
+      #### 1. Financial Outlook (Executive Summary)
+      Summarize the viability of achieving the target financial goal (ROI/Solvency) based on the model.
+      
+      #### 2. Critical Success Factors
+      Identify the asset allocation or financial decision that provides the highest return on investment (ROI) or stability. Explain why this factor is critical for the portfolio.
+      
+      #### 3. Risk Analysis (Weakest Link)
+      Identify the decision or market condition in the optimal path that presents the highest risk (lowest probability). Explain the financial exposure here.
+      
+      #### 4. Advisory Recommendations
+      - **Portfolio Rebalancing:** Suggest a concrete change to the "Weakest Link" to mitigate risk (e.g., "Hedge against market volatility", "Diversify asset class").
+      - **Strategic Addition:** Suggest one new financial variable to track (e.g., "Interest Rates", "Inflation Index") to make the model more robust.
+      `;
+  } else {
+      systemPrompt = `You are a senior product analyst and technical advisor. Your goal is to provide unbiased, constructive, and actionable advice to help a user improve their strategy.
 
-**USER's MODEL DEFINITION:**
+      **Structure your advice as follows:**
+      #### 1. Executive Summary
+      Start with a one-sentence summary of the key takeaway.
+      
+      #### 2. Key Drivers of Success
+      Identify the single most influential decision that drives the final probability higher.
+      
+      #### 3. Opportunity for Improvement
+      Pinpoint the "weakest link" (lowest probability state) in the recommended path.
+      
+      #### 4. Actionable Recommendations
+      - **For the weakest link:** Propose 1-2 concrete fixes (technical, content, or process).
+      - **Model Enhancement:** Propose one new variable to add.
+      `;
+  }
+
+  const fullPrompt = `
+${systemPrompt}
+
+**USER'S MODEL:**
 ${variablesDescription}
 
-**CALCULATED OPTIMAL PATH:**
+**OPTIMAL PATH:**
 ${resultDescription}
-
----
-
-**YOUR STRATEGIC ANALYSIS & RECOMMENDATIONS:**
-
-Please provide your analysis in clear, well-structured markdown. Use headings, bold text, and bullet points to maximize readability. Structure your response with the following four sections:
-
-#### 1. Executive Summary
-Start with a one-sentence summary of the key takeaway. Then, briefly explain what the result means for the user in practical terms.
-
-#### 2. Key Drivers of Success
-- Identify the single most influential decision (the variable/state choice) that drives the final probability higher.
-- Explain *why* it's so impactful compared to other choices.
-- Highlight any states that are particularly poor choices and should likely be deprioritized.
-
-#### 3. Opportunity for Improvement
-- Pinpoint the "weakest link" in the optimal path. Which state in the recommended combination has the lowest probability and therefore presents the biggest opportunity for improvement?
-- Briefly explain the potential risks associated with this weakest link.
-- Frame this not as a failure, but as the primary focus area for optimization.
-
-#### 4. Actionable Recommendations & Upgrades
-- **For the weakest link identified above:** Propose 1-2 concrete, workable fixes to improve its success probability. These should be practical suggestions, not extreme measures. Examples:
-    - *Technical Fix:* "A/B test the button copy on the sign-up page."
-    - *Platform Upgrade:* "Consider integrating a faster payment processor to reduce cart abandonment."
-    - *Content Tweak:* "Rewrite the email subject line to create more urgency."
-    - *Broader Strategy:* Suggest one other strategic action the user could take based on the overall model to incrementally lift the success rate.
-- **Model Enhancement:** Propose one new, relevant variable the user could add to their model to gain a more complete picture. Explain why this variable is important for a more robust strategy.
-  `;
+`;
   
   try {
     const ai = getAiClient();
     const response = await ai.models.generateContent({
         model,
-        contents: prompt
+        contents: fullPrompt
     });
     
-    // Safely access text
     const analysisText = response.text ?? '';
     
     if (!analysisText) {
@@ -157,8 +172,8 @@ const variableSchema = {
                         items: {
                             type: Type.OBJECT,
                             properties: {
-                                name: { type: Type.STRING, description: "The name of the outcome. This should always be 'Success'." },
-                                probability: { type: Type.INTEGER, description: 'The estimated probability (0-100) of this outcome occurring for this state.' }
+                                name: { type: Type.STRING, description: "The name of the outcome (e.g., Success, High ROI)." },
+                                probability: { type: Type.INTEGER, description: 'The estimated probability (0-100) of this outcome occurring.' }
                             },
                             required: ['name', 'probability']
                         }
@@ -171,26 +186,40 @@ const variableSchema = {
     required: ['name', 'states']
 };
 
-export const analyzeLinkForVariables = async (url: string): Promise<{ variable: Variable; sources: { title: string; uri: string }[] }> => {
-    // When using Google Search tool, we cannot use responseSchema.
-    // We must explicitly instruct the model to return JSON in the prompt.
-    const prompt = `You are a strategic analyst. A user has provided a URL. Your task is to analyze the content, purpose, and context of the link to propose a new, relevant variable for their probabilistic model.
+export const analyzeLinkForVariables = async (
+    url: string, 
+    mode: 'general' | 'financial' = 'general'
+): Promise<{ variable: Variable; sources: { title: string; uri: string }[] }> => {
+    
+    let instructions = "";
+    if (mode === 'financial') {
+        instructions = `
+        This is for a **Financial Planning Model**.
+        Analyze the URL for financial indicators, investment opportunities, or economic news.
+        - If it's a **Company/Stock**: Variable name should be related to "Fundamental Strength" or "Market Sentiment". States: "Buy Signal", "Hold", "Sell".
+        - If it's a **Crypto/Asset**: Variable name: "Volatility" or "Adoption Rate". States: "High Growth", "Correction", "Stagnation".
+        - If it's **News**: Variable name: "Economic Impact". States: "Positive Shock", "Negative Shock", "Neutral".
+        - Estimate probabilities based on the sentiment of the content.
+        `;
+    } else {
+        instructions = `
+        This is for a **General Strategic Model**.
+        - If it is a **Product/Business** page: Analyze business model/pricing.
+        - If it is a **YouTube Video**: Analyze "Virality Potential" or "Content Quality".
+        - If it is a **Instagram/TikTok**: Analyze "Aesthetic Appeal", "Trend Relevance", or "Visual Hook".
+        - If it is a **Social Post (X/LinkedIn)**: Analyze "Engagement Potential" or "Copy Strength".
+        `;
+    }
+
+    const prompt = `You are an expert analyst. A user has provided a URL. Your task is to analyze the content to propose a new, relevant variable for their probabilistic model.
 
 URL provided by user: ${url}
 
-**INSTRUCTIONS:**
-1. Use **Google Search** to find information about the link.
-   - If it is a **Product/Business** page: Analyze the business model, market fit, or pricing strategy.
-   - If it is a **YouTube Video**: Analyze the video content, title, and topic. Determine variables like "Thumbnail CTR Potential", "Viewer Retention Strategy", or "Topic Virality".
-   - If it is a **Instagram/TikTok/Visual Social** link: Analyze the visual aesthetics, current trend alignment, and caption hook. Determine variables like "Aesthetic Appeal", "Trend Relevance", or "Shareability".
-   - If it is a **Text Social (X/Twitter/Threads/LinkedIn)**: Analyze the copy, hashtags, and controversy level. Determine variables like "Engagement Potential", "Thread Hook Strength", or "Professional Relevance".
-   - If it is a **News/Article**: Analyze the sentiment or impact of the event described.
-2. Based on your research, identify a single, core strategic variable relevant to this entity.
-3. Define 2-3 distinct states (strategies/options) for this variable.
-4. For each state, estimate the probability (0-100) of achieving a 'Success' outcome (high engagement, conversion, etc.) based on general market knowledge or specific data found about the link.
+**CONTEXT & INSTRUCTIONS:**
+${instructions}
 
 **OUTPUT FORMAT:**
-You must return ONLY a valid JSON object. Do not include markdown formatting (like \`\`\`json) or any explanatory text. The JSON must strictly adhere to this structure:
+You must return ONLY a valid JSON object adhering to this schema:
 ${JSON.stringify(variableSchema, null, 2)}
 `;
 
@@ -200,20 +229,13 @@ ${JSON.stringify(variableSchema, null, 2)}
             model,
             contents: prompt,
             config: {
-                // Enable Google Search Grounding
                 tools: [{ googleSearch: {} }],
-                // Note: responseMimeType and responseSchema are NOT allowed when using tools/search.
             }
         });
         
-        // Safely access text
         const text = response.text ?? '';
-        
-        if (!text) {
-            throw new Error("No response received from AI service.");
-        }
+        if (!text) throw new Error("No response received from AI service.");
 
-        // Robust JSON extraction in case the model includes markdown code blocks despite instructions
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         const jsonString = jsonMatch ? jsonMatch[0] : text;
         
@@ -231,7 +253,6 @@ ${JSON.stringify(variableSchema, null, 2)}
             throw new Error('SECURITY_RISK_DETECTED: Malicious intent found in AI-generated variable.');
         }
 
-        // Re-hydrate the object with IDs to match our internal types
         const variableWithIds: Variable = {
             id: crypto.randomUUID(),
             name: parsed.name,
@@ -246,7 +267,6 @@ ${JSON.stringify(variableSchema, null, 2)}
             }))
         };
 
-        // Extract Grounding Metadata (Sources)
         const sources: { title: string; uri: string }[] = [];
         const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
         if (chunks) {
@@ -273,7 +293,6 @@ ${JSON.stringify(variableSchema, null, 2)}
 
 // New function for Batch CLI processing
 export const processBatchData = async (inputData: string): Promise<Variable[]> => {
-    // Schema definition for array of variables
     const variableListSchema = {
         type: Type.ARRAY,
         items: variableSchema
@@ -281,23 +300,22 @@ export const processBatchData = async (inputData: string): Promise<Variable[]> =
 
     const prompt = `
     You are a High-Performance Data Processor CLI.
-    
-    Your task is to analyze the user's raw input data (which may be CSV, JSON, log text, or natural language description) and extract strategic variables for a Probabilistic Outcome Analyzer.
+    Analyze input data and extract strategic variables.
     
     **INPUT DATA:**
     ${inputData}
     
     **INSTRUCTIONS:**
-    1. Identify distinct variables or factors in the data that influence an outcome.
-    2. For each variable, identify the different states or categories it can take.
-    3. Estimate a success probability (0-100) for each state based on the data context or general knowledge if data is sparse.
-    4. Return a list of Variable objects strictly adhering to the JSON schema.
+    1. Identify variables/factors.
+    2. Identify states/categories.
+    3. Estimate probability (0-100).
+    4. Return JSON array.
     `;
 
     try {
         const ai = getAiClient();
         const response = await ai.models.generateContent({
-            model, // gemini-2.5-flash handles large context
+            model,
             contents: prompt,
             config: {
                 responseMimeType: "application/json",
@@ -316,7 +334,6 @@ export const processBatchData = async (inputData: string): Promise<Variable[]> =
             throw new Error("SECURITY_RISK_DETECTED: Malicious content in batch data.");
         }
 
-        // Hydrate with UUIDs
         return parsed.map((v: any) => ({
             id: crypto.randomUUID(),
             name: v.name,
@@ -346,22 +363,11 @@ export const generateCppAdaptivityCode = async (variables: Variable[]): Promise<
 
     const prompt = `
     You are an expert embedded systems engineer.
-    Create a high-performance C++17 class named 'AdaptiveOptimizer' that models the following probabilistic decision variables:
+    Create a C++17 class 'AdaptiveOptimizer' for these variables:
     ${JSON.stringify(varSchema, null, 2)}
-
-    REQUIREMENTS:
-    1.  **Data Structure**: Use std::vector and struct to efficiently store variables and their states.
-    2.  **Adaptivity**: Implement a method \`void updateProbability(std::string variableName, std::string stateName, double newProbability)\` to allow the system to adapt to runtime sensor data or market changes.
-    3.  **Optimization**: Implement \`double calculateOptimalStrategy()\` which finds the combination of states with the highest joint probability and prints it.
-    4.  **Demo**: Include a \`main()\` function that:
-        - Instantiates the model.
-        - Prints the initial optimal path.
-        - Simulates a runtime change (e.g., "Sensor X detected efficiency drop").
-        - Calls \`updateProbability\`.
-        - Prints the NEW, adapted optimal path to demonstrate adaptivity.
     
     OUTPUT FORMAT:
-    Return ONLY the valid C++ source code. Do not include markdown blocks (like \`\`\`cpp) or explanations.
+    Return ONLY the valid C++ source code. No markdown.
     `;
 
     try {
@@ -372,7 +378,6 @@ export const generateCppAdaptivityCode = async (variables: Variable[]): Promise<
         });
         
         let text = response.text ?? "// Error generating C++ code.";
-        // Clean up any potential markdown formatting the model might add despite instructions
         text = text.replace(/```cpp/g, '').replace(/```/g, '').trim();
         return text;
 
