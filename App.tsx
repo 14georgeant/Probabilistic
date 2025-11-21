@@ -1,5 +1,5 @@
 
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Variable, AnalysisResult } from './types';
 import Header from './components/Header';
 import VariableInputList from './components/VariableInputList';
@@ -82,6 +82,9 @@ const App: React.FC = () => {
 
     // Reset Key to force remounting of persistent components
     const [resetKey, setResetKey] = useState<number>(0);
+
+    // Scroll Container Ref for Mode Selector
+    const scrollContainerRef = useRef<HTMLDivElement>(null);
 
     // Persistence Effects
     useEffect(() => {
@@ -386,6 +389,14 @@ const App: React.FC = () => {
         setActiveTab('manual');
     };
 
+    const scroll = (direction: 'left' | 'right') => {
+        if (scrollContainerRef.current) {
+            const { current } = scrollContainerRef;
+            const scrollAmount = 200;
+            current.scrollBy({ left: direction === 'right' ? scrollAmount : -scrollAmount, behavior: 'smooth' });
+        }
+    };
+
     const getThemeColors = () => {
         switch (appMode) {
             case 'financial': return {
@@ -526,8 +537,25 @@ const App: React.FC = () => {
                     <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-gray-900 to-transparent z-20 pointer-events-none md:hidden" />
                     <div className="absolute right-0 top-0 bottom-0 w-12 bg-gradient-to-l from-gray-900 to-transparent z-20 pointer-events-none md:hidden" />
 
+                    {/* Navigation Arrows */}
+                    <button 
+                        onClick={() => scroll('left')}
+                        className="absolute left-1 top-1/2 -translate-y-1/2 z-30 bg-gray-800/90 p-1.5 rounded-full text-white shadow-lg border border-gray-700 md:hidden active:scale-95 transition-all opacity-70 hover:opacity-100"
+                        aria-label="Scroll Left"
+                    >
+                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                    </button>
+                    
+                    <button 
+                        onClick={() => scroll('right')}
+                        className="absolute right-1 top-1/2 -translate-y-1/2 z-30 bg-gray-800/90 p-1.5 rounded-full text-white shadow-lg border border-gray-700 md:hidden active:scale-95 transition-all opacity-90 hover:opacity-100"
+                        aria-label="Scroll Right"
+                    >
+                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                    </button>
+
                     <div className="flex items-center justify-between overflow-hidden">
-                        <div className="flex-grow flex overflow-x-auto snap-x snap-mandatory no-scrollbar items-center px-8 py-4 min-h-[80px] md:px-4 md:gap-4 md:justify-center md:py-1 md:min-h-0">
+                        <div ref={scrollContainerRef} className="flex-grow flex overflow-x-auto snap-x snap-mandatory no-scrollbar items-center px-8 py-4 min-h-[80px] md:px-4 md:gap-4 md:justify-center md:py-1 md:min-h-0 scroll-smooth">
                             <ModeButton 
                                 mode="general" 
                                 label="General Strategy" 
