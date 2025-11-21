@@ -8,9 +8,10 @@ interface ResultsDisplayProps {
     isLoading: boolean;
     variables: Variable[]; // Needed for context in leverage calculation
     mode?: 'general' | 'financial' | 'health' | 'medical';
+    onExportCpp?: () => void;
 }
 
-const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ result, insights, isLoading, variables, mode = 'general' }) => {
+const ResultsDisplay: React.FC<ResultsDisplayProps> = ({ result, insights, isLoading, variables, mode = 'general', onExportCpp }) => {
     // Store temporary adjustments to probabilities for the "What If" simulator
     const [simulatedValues, setSimulatedValues] = useState<Record<string, number>>({});
     const [copyStatus, setCopyStatus] = useState<'idle' | 'copied'>('idle');
@@ -251,6 +252,13 @@ Analyzed via Probabilistic Outcome Analyzer ${footerTags}`;
                         className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider bg-purple-900/30 hover:bg-purple-800/50 text-purple-300 hover:text-purple-200 py-2 px-3 rounded-md border border-purple-800/50 transition-all"
                     >
                         NotebookLM Report
+                    </button>
+
+                    <button
+                        onClick={onExportCpp}
+                        className="flex items-center gap-2 text-xs font-medium uppercase tracking-wider bg-slate-700/50 hover:bg-slate-600 text-slate-300 hover:text-white py-2 px-3 rounded-md border border-slate-600 transition-all"
+                    >
+                        Export Logic Engine
                     </button>
                     
                     <button

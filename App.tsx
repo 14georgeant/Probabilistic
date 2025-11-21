@@ -10,6 +10,22 @@ import TermsModal from './components/TermsModal';
 import GeminiTerminal from './components/GeminiTerminal';
 import MedicalChat from './components/MedicalChat';
 import TradaysCalendar from './components/TradaysCalendar';
+import CodeExportModal from './components/CodeExportModal';
+
+// Robust UUID generator that works in non-secure contexts (HTTP) where crypto.randomUUID might be undefined
+const generateUUID = () => {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+        try {
+            return crypto.randomUUID();
+        } catch {
+            // Fallback if crypto.randomUUID fails
+        }
+    }
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+        var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+        return v.toString(16);
+    });
+};
 
 const App: React.FC = () => {
     // App Mode: 'general' (Cyan), 'financial' (Emerald), 'health' (Rose), 'medical' (Indigo)
@@ -32,19 +48,19 @@ const App: React.FC = () => {
         // Default Initial State
         return [
             {
-                id: crypto.randomUUID(),
+                id: generateUUID(),
                 name: 'Marketing Campaign',
                 states: [
-                    { id: crypto.randomUUID(), name: 'Social Media', outcomes: [{ id: crypto.randomUUID(), name: 'Success', probability: 70 }] },
-                    { id: crypto.randomUUID(), name: 'Email Outreach', outcomes: [{ id: crypto.randomUUID(), name: 'Success', probability: 60 }] },
+                    { id: generateUUID(), name: 'Social Media', outcomes: [{ id: generateUUID(), name: 'Success', probability: 70 }] },
+                    { id: generateUUID(), name: 'Email Outreach', outcomes: [{ id: generateUUID(), name: 'Success', probability: 60 }] },
                 ]
             },
             {
-                id: crypto.randomUUID(),
+                id: generateUUID(),
                 name: 'Product Pricing',
                 states: [
-                    { id: crypto.randomUUID(), name: 'Premium Tier', outcomes: [{ id: crypto.randomUUID(), name: 'Success', probability: 55 }] },
-                    { id: crypto.randomUUID(), name: 'Standard Tier', outcomes: [{ id: crypto.randomUUID(), name: 'Success', probability: 80 }] },
+                    { id: generateUUID(), name: 'Premium Tier', outcomes: [{ id: generateUUID(), name: 'Success', probability: 55 }] },
+                    { id: generateUUID(), name: 'Standard Tier', outcomes: [{ id: generateUUID(), name: 'Success', probability: 80 }] },
                 ]
             }
         ];
@@ -63,6 +79,7 @@ const App: React.FC = () => {
     const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
     const [isTerminalOpen, setIsTerminalOpen] = useState<boolean>(false);
     const [isMedicalChatOpen, setIsMedicalChatOpen] = useState<boolean>(false);
+    const [isCodeModalOpen, setIsCodeModalOpen] = useState<boolean>(false);
     
     // Terms and Privacy State
     const [hasAcceptedTerms, setHasAcceptedTerms] = useState<boolean>(false);
@@ -128,20 +145,20 @@ const App: React.FC = () => {
         setTargetOutcomeName('High ROI');
         setVariables([
             {
-                id: crypto.randomUUID(),
+                id: generateUUID(),
                 name: 'Asset Allocation',
                 states: [
-                    { id: crypto.randomUUID(), name: 'Aggressive (Stocks/Crypto)', outcomes: [{ id: crypto.randomUUID(), name: 'High ROI', probability: 65 }] },
-                    { id: crypto.randomUUID(), name: 'Balanced (60/40)', outcomes: [{ id: crypto.randomUUID(), name: 'High ROI', probability: 50 }] },
-                    { id: crypto.randomUUID(), name: 'Conservative (Bonds)', outcomes: [{ id: crypto.randomUUID(), name: 'High ROI', probability: 30 }] },
+                    { id: generateUUID(), name: 'Aggressive (Stocks/Crypto)', outcomes: [{ id: generateUUID(), name: 'High ROI', probability: 65 }] },
+                    { id: generateUUID(), name: 'Balanced (60/40)', outcomes: [{ id: generateUUID(), name: 'High ROI', probability: 50 }] },
+                    { id: generateUUID(), name: 'Conservative (Bonds)', outcomes: [{ id: generateUUID(), name: 'High ROI', probability: 30 }] },
                 ]
             },
             {
-                id: crypto.randomUUID(),
+                id: generateUUID(),
                 name: 'Market Condition',
                 states: [
-                    { id: crypto.randomUUID(), name: 'Bull Market', outcomes: [{ id: crypto.randomUUID(), name: 'High ROI', probability: 85 }] },
-                    { id: crypto.randomUUID(), name: 'Bear Market', outcomes: [{ id: crypto.randomUUID(), name: 'High ROI', probability: 20 }] },
+                    { id: generateUUID(), name: 'Bull Market', outcomes: [{ id: generateUUID(), name: 'High ROI', probability: 85 }] },
+                    { id: generateUUID(), name: 'Bear Market', outcomes: [{ id: generateUUID(), name: 'High ROI', probability: 20 }] },
                 ]
             }
         ]);
@@ -154,28 +171,28 @@ const App: React.FC = () => {
         setTargetOutcomeName('Peak Performance');
         setVariables([
             {
-                id: crypto.randomUUID(),
+                id: generateUUID(),
                 name: 'Diet Protocol',
                 states: [
-                    { id: crypto.randomUUID(), name: 'High Protein / Low Carb', outcomes: [{ id: crypto.randomUUID(), name: 'Peak Performance', probability: 75 }] },
-                    { id: crypto.randomUUID(), name: 'Intermittent Fasting', outcomes: [{ id: crypto.randomUUID(), name: 'Peak Performance', probability: 60 }] },
-                    { id: crypto.randomUUID(), name: 'Standard American Diet', outcomes: [{ id: crypto.randomUUID(), name: 'Peak Performance', probability: 15 }] },
+                    { id: generateUUID(), name: 'High Protein / Low Carb', outcomes: [{ id: generateUUID(), name: 'Peak Performance', probability: 75 }] },
+                    { id: generateUUID(), name: 'Intermittent Fasting', outcomes: [{ id: generateUUID(), name: 'Peak Performance', probability: 60 }] },
+                    { id: generateUUID(), name: 'Standard American Diet', outcomes: [{ id: generateUUID(), name: 'Peak Performance', probability: 15 }] },
                 ]
             },
             {
-                id: crypto.randomUUID(),
+                id: generateUUID(),
                 name: 'Sleep Hygiene',
                 states: [
-                    { id: crypto.randomUUID(), name: '8+ Hours Consistent', outcomes: [{ id: crypto.randomUUID(), name: 'Peak Performance', probability: 90 }] },
-                    { id: crypto.randomUUID(), name: '6 Hours Fragmented', outcomes: [{ id: crypto.randomUUID(), name: 'Peak Performance', probability: 40 }] },
+                    { id: generateUUID(), name: '8+ Hours Consistent', outcomes: [{ id: generateUUID(), name: 'Peak Performance', probability: 90 }] },
+                    { id: generateUUID(), name: '6 Hours Fragmented', outcomes: [{ id: generateUUID(), name: 'Peak Performance', probability: 40 }] },
                 ]
             },
             {
-                id: crypto.randomUUID(),
+                id: generateUUID(),
                 name: 'Training Load',
                 states: [
-                    { id: crypto.randomUUID(), name: 'Progressive Overload', outcomes: [{ id: crypto.randomUUID(), name: 'Peak Performance', probability: 80 }] },
-                    { id: crypto.randomUUID(), name: 'Overtraining', outcomes: [{ id: crypto.randomUUID(), name: 'Peak Performance', probability: 25 }] },
+                    { id: generateUUID(), name: 'Progressive Overload', outcomes: [{ id: generateUUID(), name: 'Peak Performance', probability: 80 }] },
+                    { id: generateUUID(), name: 'Overtraining', outcomes: [{ id: generateUUID(), name: 'Peak Performance', probability: 25 }] },
                 ]
             }
         ]);
@@ -189,25 +206,66 @@ const App: React.FC = () => {
         setIsMedicalChatOpen(true);
         setVariables([
             {
-                id: crypto.randomUUID(),
+                id: generateUUID(),
                 name: 'Symptom Presentation',
                 states: [
-                    { id: crypto.randomUUID(), name: 'Acute Onset (<24h)', outcomes: [{ id: crypto.randomUUID(), name: 'Positive Prognosis', probability: 45 }] },
-                    { id: crypto.randomUUID(), name: 'Chronic (>2 weeks)', outcomes: [{ id: crypto.randomUUID(), name: 'Positive Prognosis', probability: 60 }] }
+                    { id: generateUUID(), name: 'Acute Onset (<24h)', outcomes: [{ id: generateUUID(), name: 'Positive Prognosis', probability: 45 }] },
+                    { id: generateUUID(), name: 'Chronic (>2 weeks)', outcomes: [{ id: generateUUID(), name: 'Positive Prognosis', probability: 60 }] }
                 ]
             },
             {
-                id: crypto.randomUUID(),
+                id: generateUUID(),
                 name: 'Treatment Adherence',
                 states: [
-                    { id: crypto.randomUUID(), name: 'Strict Adherence', outcomes: [{ id: crypto.randomUUID(), name: 'Positive Prognosis', probability: 95 }] },
-                    { id: crypto.randomUUID(), name: 'Intermittent', outcomes: [{ id: crypto.randomUUID(), name: 'Positive Prognosis', probability: 55 }] }
+                    { id: generateUUID(), name: 'Strict Adherence', outcomes: [{ id: generateUUID(), name: 'Positive Prognosis', probability: 95 }] },
+                    { id: generateUUID(), name: 'Intermittent', outcomes: [{ id: generateUUID(), name: 'Positive Prognosis', probability: 55 }] }
                 ]
             }
         ]);
         setAnalysisResult(null);
         setGeminiInsights('');
     };
+
+    const handleReset = useCallback(() => {
+        if (window.confirm("Start a new analysis? This will clear all current variables and results.")) {
+            setAnalysisResult(null);
+            setGeminiInsights('');
+            setError('');
+            
+            // Automatically set the correct target outcome name based on the active mode
+            let defaultTarget = 'Success';
+            let defaultVarName = 'New Strategy Variable';
+            
+            if (appMode === 'financial') {
+                defaultTarget = 'High ROI';
+                defaultVarName = 'New Financial Factor';
+            } else if (appMode === 'health') {
+                defaultTarget = 'Peak Performance';
+                defaultVarName = 'New Health Habit';
+            } else if (appMode === 'medical') {
+                defaultTarget = 'Positive Prognosis';
+                defaultVarName = 'New Clinical Factor';
+            }
+            
+            setTargetOutcomeName(defaultTarget);
+
+            // Create fresh variables that MATCH the new target outcome
+            setVariables([
+                {
+                    id: generateUUID(),
+                    name: defaultVarName,
+                    states: [
+                        { id: generateUUID(), name: 'Option A', outcomes: [{ id: generateUUID(), name: defaultTarget, probability: 50 }] },
+                        { id: generateUUID(), name: 'Option B', outcomes: [{ id: generateUUID(), name: defaultTarget, probability: 50 }] },
+                    ]
+                }
+            ]);
+            
+            setActiveTab('manual');
+            setIsCodeModalOpen(false);
+            setIsTerminalOpen(false);
+        }
+    }, [appMode]);
 
     const handleAnalyze = useCallback(async () => {
         if (!isOnline) {
@@ -509,6 +567,7 @@ const App: React.FC = () => {
                                 isLoading={isLoading}
                                 variables={variables}
                                 mode={appMode}
+                                onExportCpp={() => setIsCodeModalOpen(true)}
                             />
                         </div>
                     </div>
@@ -534,8 +593,21 @@ const App: React.FC = () => {
                 onClose={() => setIsMedicalChatOpen(false)}
             />
 
+            <CodeExportModal 
+                isOpen={isCodeModalOpen}
+                onClose={() => setIsCodeModalOpen(false)}
+                variables={variables}
+            />
+
             <footer className="sticky bottom-0 bg-gray-900/80 backdrop-blur-sm p-4 border-t border-gray-700 z-10">
-                <div className="container mx-auto flex justify-center">
+                <div className="container mx-auto flex flex-col md:flex-row justify-center items-center gap-4">
+                    <button
+                        onClick={handleReset}
+                        disabled={isLoading}
+                        className="w-full md:w-auto px-8 py-3 rounded-lg font-bold text-gray-400 border-2 border-gray-700 hover:border-gray-500 hover:text-white hover:bg-gray-800 transition-all"
+                    >
+                        Reset
+                    </button>
                     <button
                         onClick={handleAnalyze}
                         disabled={isLoading || !isOnline}

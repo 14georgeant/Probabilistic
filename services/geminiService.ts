@@ -504,17 +504,25 @@ export const generateCppAdaptivityCode = async (variables: Variable[]): Promise<
 
     const prompt = `
     You are an expert embedded systems engineer.
-    Create a C++17 class 'AdaptiveOptimizer' for these variables:
+    Create a production-ready C++17 class 'AdaptiveOptimizer' for the following variables and states:
     ${JSON.stringify(varSchema, null, 2)}
     
+    REQUIREMENTS:
+    1. The class should encapsulate the state probabilities efficiently.
+    2. Include a method 'updateProbability(std::string variableName, std::string stateName, int newProbability)' to adapt to real-time data adjustments.
+    3. Include a method 'calculateOptimalPath()' that performs a basic probabilistic traversal to find the best path based on current weights.
+    4. Use standard STL containers (std::vector, std::map, std::string).
+    5. Include concise Doxygen-style comments explaining the adaptivity logic.
+    
     OUTPUT FORMAT:
-    Return ONLY the valid C++ source code. No markdown.
+    Return ONLY the raw C++ source code. Do not include markdown formatting (no \`\`\`cpp or \`\`\`).
     `;
 
     try {
         const ai = getAiClient();
+        // Upgrading to 3-pro-preview for complex coding tasks
         const response = await ai.models.generateContent({
-            model,
+            model: 'gemini-3-pro-preview',
             contents: prompt
         });
         
