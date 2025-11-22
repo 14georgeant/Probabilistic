@@ -17,9 +17,7 @@ const Header: React.FC<HeaderProps> = ({ onOpenTerms, onOpenTerminal }) => {
                             <Logo className="h-9 w-9 text-cyan-400 mr-3" />
                          </div>
                         <div>
-                            <h1 className="text-2xl font-bold text-white tracking-tight hidden md:block">Probabilistic Outcome Analyzer</h1>
-                            {/* Minimalistic Mobile Header */}
-                            <h1 className="text-lg font-bold text-white tracking-tight md:hidden">POA Decision Tool</h1>
+                            <h1 className="text-lg md:text-2xl font-bold text-white tracking-tight leading-tight">Probabilistic Outcome Analyzer</h1>
                         </div>
                     </div>
 
